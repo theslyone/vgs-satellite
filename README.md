@@ -3,6 +3,9 @@
 <p align="center"><b>@vgs/vgs-satellite</b><br/>VGS Offline integration/debugging application.</p>
 <p align="center">
 <a href="https://circleci.com/gh/verygoodsecurity/vgs-satellite/tree/master"><img src="https://circleci.com/gh/verygoodsecurity/vgs-satellite/tree/master.svg?style=svg" alt="circleci-test"></a>
+<a href="https://lgtm.com/projects/g/verygoodsecurity/vgs-satellite/context:python"><img alt="Language grade: Python" src="https://img.shields.io/lgtm/grade/python/g/verygoodsecurity/vgs-satellite.svg?logo=lgtm&logoWidth=18"/></a>
+<a href="https://lgtm.com/projects/g/verygoodsecurity/vgs-satellite/context:javascript"><img alt="Language grade: JavaScript" src="https://img.shields.io/lgtm/grade/javascript/g/verygoodsecurity/vgs-satellite.svg?logo=lgtm&logoWidth=18"/></a>
+
 </p>
 
 
