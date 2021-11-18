@@ -136,7 +136,7 @@ protocol.registerSchemesAsPrivileged([
 
 function modifyHeaders() {
   const filter = {
-    urls: ['https://auth.verygoodsecurity.com/*'],
+    urls: ['https://auth.verygoodsecurity.io/*'],
   };
   session.defaultSession.webRequest.onHeadersReceived(
     filter,

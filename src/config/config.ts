@@ -3,17 +3,18 @@ const port = process.env.SATELLITE_API_PORT;
 const heapTrackingId = process.env.HEAP_ID;
 
 function getConfig(environment = 'dev') {
+  console.log('environment: ', environment);
   const ENV = {
     environment,
     heapTrackingId,
     satelliteApiEndpoint: `http://localhost:${port}`,
-    defaultRuleTokenizeHostEndpoint: '(.*)\\.verygoodproxy\\.com',
+    defaultRuleTokenizeHostEndpoint: '(.*)\\.verygoodproxy\\.io',
     defaultRuleDetokenizeHostEndpoint: 'echo\\.apps\\.verygood\\.systems',
     defaultRuleDestinationOverrideEndpoint: 'https://echo.apps.verygood.systems',
     echoServerURL: 'https://echo.apps.verygood.systems',
     echoServerHostname: 'echo.apps.verygood.systems',
     echoServerRegex: 'echo\.apps\.verygood\.systems', // eslint-disable-line
-    dashboardApiHost: 'https://accounts.apps.verygoodsecurity.com',
+    dashboardApiHost: 'https://accounts.verygoodsecurity.io',
     dashboardLink: 'https://dashboard.verygoodsecurity.com',
     docsLink: 'https://www.verygoodsecurity.com/docs/overview',
     docsGuidesLink: 'https://www.verygoodsecurity.com/docs/guides/index',
@@ -26,7 +27,7 @@ function getConfig(environment = 'dev') {
       redirectUri: window.location.origin,
       realm: 'vgs',
       clientId: 'satellite',
-      url: 'https://auth.verygoodsecurity.com/auth',
+      url: 'https://auth.verygoodsecurity.io/auth',
     },
   };
   return ENV;

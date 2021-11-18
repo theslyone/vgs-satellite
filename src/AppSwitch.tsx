@@ -7,6 +7,7 @@ import RoutesListContainer from 'src/components/vault/RoutesList/RoutesListConta
 import RouteContainer from 'src/components/vault/Route/RouteContainer';
 import NewRouteContainer from 'src/components/vault/Route/NewRouteContainer';
 import PromoteRouteContainer from 'src/components/vault/PromoteRoute/PromoteRouteContainer';
+import DebugContainer from 'src/components/vault/Debug/DebugContainer';
 
 interface IAppSwitchProps {
 }
@@ -18,6 +19,11 @@ const AppSwitch: React.FC<IAppSwitchProps> = (props) => {
       <Switch>
         <Route exact path="/" component={Home}/>
         <Route exact path="/logs" component={PreCollectContainer}/>
+        <Route
+          exact
+          path="/debugger"
+          component={DebugContainer}
+        />
         <Route exact path="/routes" component={RoutesListContainer}/>
         <Route
           exact

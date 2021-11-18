@@ -29,6 +29,12 @@ export const VaultNav: React.FC<IVaultNavProps> = (props) => {
         >
           Logs
         </NavLink>
+        <NavLink
+          className="menu-item"
+          to="/debugger"
+        >
+          Debugger
+        </NavLink>
       </ul>
     </div>
 
