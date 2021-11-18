@@ -12,10 +12,54 @@
     <link rel="icon" type="image/png" href="../static/images/favicons/android-chrome-512x512.png" sizes=512x512>
     <link rel="apple-touch-icon" href="../static/images/favicons/apple-touch-icon.png" sizes="180x180">
     <link rel="mask-icon" href="../static/images/favicons/safari-pinned-tab.svg">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.29.0/codemirror.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.29.0/mode/python/python.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.29.0/codemirror.css">
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.12/css/all.css" integrity="sha384-G0fIWCsCzJIMAVNQPfjH08cyYaUtMwjJwqiRKxxE/rx96Uroj1BtIQ6MLJuheaO9" crossorigin="anonymous">
   </head>
   <body>
     <div id="localhoste-app"></div>
     <script src="../src/index.tsx"></script>
+    <script>
+      var editor = CodeMirror.fromTextArea(document.getElementById("code"), {
+          mode: {name: "python",
+                 version: 3,
+           extra_keywords: ["load"]},
+          lineNumbers: true,
+          indentUnit: 4,
+          readOnly: true,
+          gutters: ["CodeMirror-linenumbers", "breakpoints"]
+      });
+    
+      editor.on("gutterClick", breakpointClick);
+    
+      function openTab(evt, tabName) {
+          var i, tabcontent, tablinks;
+    
+          // Hide all the tabs.
+          tabcontent = document.getElementsByClassName("tab-content");
+          for (var i = 0; i < tabcontent.length; i++) {
+              tabcontent[i].style.display = "none";
+          }
+    
+          // Remove active from all the tab names.
+          tablinks = document.getElementsByClassName("tablinks");
+          for (var i = 0; i < tablinks.length; i++) {
+              tablinks[i].className = tablinks[i].className.replace(" active", "");
+          }
+    
+          // Show the content.
+          document.getElementById(tabName).style.display = "block";
+          evt.currentTarget.className += " active";
+      }
+    
+      editor.addLineClass(6, "background", "styled-background");
+      editor.addLineClass(10, "background", "styled-background2");
+      editor.addLineClass(14, "background", "foo-background");
+      document.getElementById("default-tab").click();
+      init(editor);
+      listenEvents();
+    
+    </script>
   </body>
 </html>

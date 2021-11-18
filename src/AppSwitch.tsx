@@ -8,6 +8,7 @@ import RouteContainer from 'src/components/vault/Route/RouteContainer';
 import NewRouteContainer from 'src/components/vault/Route/NewRouteContainer';
 import PromoteRouteContainer from 'src/components/vault/PromoteRoute/PromoteRouteContainer';
 import DebugContainer from 'src/components/vault/Debug/DebugContainer';
+import EditorContainer from 'src/components/vault/Debug/EditorContainer';
 
 interface IAppSwitchProps {
 }
@@ -23,6 +24,11 @@ const AppSwitch: React.FC<IAppSwitchProps> = (props) => {
           exact
           path="/debugger"
           component={DebugContainer}
+        />
+        <Route
+          exact
+          path="/debugger/editor"
+          component={EditorContainer}
         />
         <Route exact path="/routes" component={RoutesListContainer}/>
         <Route

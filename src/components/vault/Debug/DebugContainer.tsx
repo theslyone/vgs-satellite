@@ -51,7 +51,7 @@ const DebugContainer: React.FC<Props> = (props) => {
         props.fetchRoutes();
       }, [client]);
 
-    const goDebug = () => console.log('will debug');
+    const goDebug = () => history.push('/debugger/editor');
     
     return !client ? (
         <h2 className='text-text-light _300 text-center mt-5 text-lg'>
