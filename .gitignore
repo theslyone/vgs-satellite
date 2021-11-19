@@ -49,3 +49,6 @@ vgs-satellite-backend.spec
 # Linters
 .flake8
 black.toml
+
+# Bazel (Delete after POC)
+bazel_example/bazel-*

@@ -12,3 +12,4 @@ alembic
 pylarky
 apispec
 apispec-webframeworks
+protobuf

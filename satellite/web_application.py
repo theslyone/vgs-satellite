@@ -13,6 +13,7 @@ from .controller import (
     BaseHandler,
     alias_handlers,
     audit_logs_handler,
+    debug_handlers,
     flow_handlers,
 )
 from .controller.exceptions import NotFoundError
@@ -20,6 +21,7 @@ from .controller.route_handlers import RouteHandler, RoutesHandler
 from .controller.websocket_connection import ClientConnection
 from .proxy.manager import ProxyManager
 from .spec import build_openapi_spec
+from .debug.debug_manager import DebugManager
 
 
 logger = logging.getLogger()
@@ -66,6 +68,14 @@ class WebApplication(Application):
             (r'/logs/(?P<flow_id>[^/]+)', audit_logs_handler.AuditLogsHandler),
             (r'/route', RoutesHandler),
             (r'/route/(?P<route_id>[^/]+)', RouteHandler),
+            (r'/debug', debug_handlers.SessionsHandler),
+            (r'/debug/(?P<session_id>[^/]+)', debug_handlers.SessionHandler),
+            (r'/debug/(?P<session_id>[^/]+)/threads', debug_handlers.ThreadsHandler),
+            (
+                r'/debug/(?P<session_id>[^/]+)/threads/(?P<thread_id>[^/]+)/frames',
+                debug_handlers.FramesHandler,
+            ),
+            (r'/debug/source(?P<path>/.+)', debug_handlers.GetSourceHandler),
         ]
 
         self.spec = build_openapi_spec(api_handlers)
@@ -102,6 +112,8 @@ class WebApplication(Application):
             ),
         )
 
+        self.debug_manager = DebugManager()
+
     def _proxy_event_handler(self, event, loop):
         asyncio.run_coroutine_threadsafe(
             ClientConnection.process_proxy_event(event),
@@ -127,4 +139,5 @@ class WebApplication(Application):
             return
         self._should_exit = True
         self.proxy_manager.stop()
+        self.debug_manager.stop()
         IOLoop.current().stop()

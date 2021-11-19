@@ -1,6 +1,8 @@
+import logging
 from typing import Callable, List, Tuple
 
 from apispec import APISpec
+from apispec.exceptions import APISpecError
 from apispec.ext.marshmallow import (
     MarshmallowPlugin as BaseMarshmallowPlugin,
     OpenAPIConverter,
@@ -66,6 +68,9 @@ def build_openapi_spec(handlers: List[Tuple[str, Callable]]) -> APISpec:
     )
 
     for urlspec in handlers:
-        spec.path(urlspec=urlspec)
+        try:
+            spec.path(urlspec=urlspec)
+        except APISpecError as exc:
+            logging.error(f"Error during loading spec: {exc}")
 
     return spec

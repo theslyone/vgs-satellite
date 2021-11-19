@@ -130,7 +130,9 @@ pluggy==0.13.1
 ply==3.11
     # via jsonpath-ng
 protobuf==3.14.0
-    # via mitmproxy
+    # via
+    #   -r requirements.in
+    #   mitmproxy
 publicsuffix2==2.20191221
     # via mitmproxy
 py==1.10.0
