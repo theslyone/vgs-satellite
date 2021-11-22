@@ -27,10 +27,19 @@ class GetThreadsResponseSchema(Schema):
     threads = fields.List(fields.Nested(Thread))
 
 
+class Value(Schema):
+    label = fields.Str(required=False)
+    description = fields.Str(required=False)
+    type = fields.Str(required=False)
+    has_children = fields.Bool(required=False)
+    id = fields.Int(required=False)
+
+
 class GetFramesResponseSchema(Schema):
     class Frame(Schema):
         class Scope(Schema):
             name = fields.Str(required=True)
+            binding = fields.List(fields.Nested(Value))
 
         function_name = fields.Str(required=True)
         scope = fields.Nested(Scope)
