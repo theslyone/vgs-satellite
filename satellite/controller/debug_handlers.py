@@ -5,6 +5,7 @@ from ..schemas.debug import (
     GetSessionResponseSchema,
     GetThreadsResponseSchema,
     NewSessionRequestSchema,
+    SetBreakpointsSchema,
 )
 from . import (
     BaseHandler,
@@ -134,8 +135,37 @@ class FramesHandler(BaseDebugSessionHander):
                     application/json:
                         schema: ErrorResponseSchema
         """
-        debugger = self.application.debug_manager.get_debugger(session_id)
-        return {"frames": debugger.list_frames(int(thread_id))}
+        session = self.get_session(session_id)
+        return {"frames": session.debugger.list_frames(int(thread_id))}
+
+
+class BreakpointsHandler(BaseDebugSessionHander):
+    @apply_request_schema(SetBreakpointsSchema)
+    def put(self, session_id: str, validated_data: dict):
+        """
+        ---
+        description: Set breakpoints
+        parameters:
+            - name: session_id
+              in: path
+              description: Debug session ID
+              required: true
+              schema:
+                type: string
+        requestBody:
+            content:
+                application/json:
+                    schema: NewSessionRequestSchema
+        responses:
+            204:
+                description: Breakpoints were successfully set
+            400:
+                content:
+                    application/json:
+                        schema: ErrorResponseSchema
+        """
+        session = self.get_session(session_id)
+        session.debugger.set_breakpoints(validated_data["breakpoints"])
 
 
 class GetSourceHandler(BaseHandler):

@@ -42,7 +42,7 @@ class DebugManager:
             del self._sessions[session_id]
             return
 
-        for session in self._sessions:
+        for session in self._sessions.values():
             session.stop()
 
         self._sessions = {}

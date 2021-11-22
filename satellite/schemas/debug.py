@@ -14,7 +14,7 @@ class GetSessionResponseSchema(Schema):
 class Location(Schema):
     path = fields.Str(required=True)
     line_number = fields.Int(required=True)
-    column_number = fields.Int(required=True)
+    column_number = fields.Int(required=False)
 
 
 class GetThreadsResponseSchema(Schema):
@@ -37,3 +37,10 @@ class GetFramesResponseSchema(Schema):
         location = fields.Nested(Location)
 
     frames = fields.List(fields.Nested(Frame))
+
+
+class SetBreakpointsSchema(Schema):
+    class Breakpoint(Schema):
+        location = fields.Nested(Location)
+
+    breakpoints = fields.List(fields.Nested(Breakpoint))

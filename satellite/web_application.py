@@ -76,6 +76,10 @@ class WebApplication(Application):
                 debug_handlers.FramesHandler,
             ),
             (r'/debug/source(?P<path>/.+)', debug_handlers.GetSourceHandler),
+            (
+                r'/debug/(?P<session_id>[^/]+)/breakpoints',
+                debug_handlers.BreakpointsHandler,
+            ),
         ]
 
         self.spec = build_openapi_spec(api_handlers)

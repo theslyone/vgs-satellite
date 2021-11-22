@@ -1,6 +1,5 @@
 import logging
 import socket
-from json import loads
 from threading import Thread
 from typing import List
 
@@ -9,12 +8,12 @@ from pylarky.eval.http_evaluator import HttpEvaluator
 from pylarky.model.http_message import HttpMessage
 
 from .starlark_debugging_pb2 import (
+    Breakpoint,
     DebugEvent,
     DebugRequest,
     ListFramesRequest,
-    ListFramesResponse,
-    StartDebuggingRequest,
-    PauseThreadRequest,
+    Location,
+    SetBreakpointsRequest,
 )
 
 
@@ -70,6 +69,17 @@ class LarkyDebugger:
         self._send_request(req)
         event = self._read_event()
         return event["list_frames"]["frame"]
+
+    def set_breakpoints(self, breakpoints: List[dict]):
+        breakpoints_proto = [
+            Breakpoint(location=Location(**breakpoint["location"]))
+            for breakpoint in breakpoints
+        ]
+        req = DebugRequest(
+            set_breakpoints=SetBreakpointsRequest(breakpoint=breakpoints_proto)
+        )
+        self._send_request(req)
+        self._read_event()
 
     def get_source(self, path: str) -> bytes:
         with open(path) as f:
