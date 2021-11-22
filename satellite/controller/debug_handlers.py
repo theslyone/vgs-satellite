@@ -25,7 +25,7 @@ class SessionsHandler(BaseHandler):
         requestBody:
             content:
                 application/json:
-                    schema: NewSessionRequestSchema
+                    schema: GetSessionResponseSchema
         responses:
             200:
                 content:
