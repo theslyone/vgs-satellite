@@ -31,13 +31,20 @@ class DataSizeOverflowError(LarkyDebuggerError):
 
 class LarkyDebugger:
     def __init__(self, debug_server_port: int = 7300):
+        self._started = False
         self._debug_server_port = debug_server_port
         self._larky_thread: Thread = None
         self._result: HttpMessage = None
         self._current_debug_thread = None
         self._sock = None
 
+    @property
+    def started(self):
+        return self._started
+
     def start(self, code: str, http_message: HttpMessage) -> dict:
+        if self._started:
+            return
         # self._larky_thread = Thread(
         #     target=self._larky_thread,
         #     kwargs={"code": code, "http_message": http_message},
@@ -46,6 +53,14 @@ class LarkyDebugger:
 
         self._connect()
         self._current_debug_thread = self._get_paused_thread()
+        self._started = True
+
+    def stop(self):
+        if not self._started:
+            return
+        self._sock.close()
+        self._sock = None
+        self._started = False
 
     def get_current_thread(self) -> dict:
         return self._current_debug_thread

@@ -6,13 +6,9 @@ class NewSessionRequestSchema(Schema):
     vault = fields.Str(required=True)
 
 
-class NewSessionResponseSchema(Schema):
-    session_id = fields.Str(required=True)
-
-
 class GetSessionResponseSchema(Schema):
     id = fields.Str(required=True)
-    status = fields.Str(required=True)
+    started = fields.Bool(required=True)
 
 
 class Location(Schema):

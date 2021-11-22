@@ -1,22 +1,22 @@
-from . import (
-    BaseHandler,
-    apply_request_schema,
-    apply_response_schema,
-)
-
+from satellite.debug.session import DebugSession
+from ..debug.debug_manager import DebugSessionLimitExceeded, DebugSessionNotFound
 from ..schemas.debug import (
     GetFramesResponseSchema,
     GetSessionResponseSchema,
     GetThreadsResponseSchema,
     NewSessionRequestSchema,
-    NewSessionResponseSchema,
 )
-from .exceptions import NotFoundError
+from . import (
+    BaseHandler,
+    apply_request_schema,
+    apply_response_schema,
+)
+from .exceptions import NotFoundError, ValidationError
 
 
 class SessionsHandler(BaseHandler):
     @apply_request_schema(NewSessionRequestSchema)
-    @apply_response_schema(NewSessionResponseSchema)
+    @apply_response_schema(GetSessionResponseSchema)
     def post(self, validated_data: dict):
         """
         ---
@@ -35,14 +35,24 @@ class SessionsHandler(BaseHandler):
                     application/json:
                         schema: ErrorResponseSchema
         """
-        session_id = self.application.debug_manager.start(
-            org_id=validated_data["org_id"],
-            vault=validated_data["vault"],
-        )
-        return {"session_id": session_id}
+        try:
+            return self.application.debug_manager.new_session(
+                org_id=validated_data["org_id"],
+                vault=validated_data["vault"],
+            )
+        except DebugSessionLimitExceeded:
+            raise ValidationError("Debug sessions limit has been excceded")
 
 
-class SessionHandler(BaseHandler):
+class BaseDebugSessionHander(BaseHandler):
+    def get_session(self, session_id: str) -> DebugSession:
+        try:
+            return self.application.debug_manager.get_session(session_id)
+        except DebugSessionNotFound:
+            raise NotFoundError(f"Unknown session ID: {session_id}")
+
+
+class SessionHandler(BaseDebugSessionHander):
     @apply_response_schema(GetSessionResponseSchema)
     def get(self, session_id: str):
         """
@@ -65,13 +75,10 @@ class SessionHandler(BaseHandler):
                     application/json:
                         schema: ErrorResponseSchema
         """
-        return {
-            "id": session_id,
-            "status": self.application.debug_manager.status(session_id),
-        }
+        return self.get_session(session_id)
 
 
-class ThreadsHandler(BaseHandler):
+class ThreadsHandler(BaseDebugSessionHander):
     @apply_response_schema(GetThreadsResponseSchema)
     def get(self, session_id: str):
         """
@@ -94,11 +101,11 @@ class ThreadsHandler(BaseHandler):
                     application/json:
                         schema: ErrorResponseSchema
         """
-        debugger = self.application.debug_manager.get_debugger(session_id)
-        return {"threads": [debugger.get_current_thread()]}
+        session = self.get_session(session_id)
+        return {"threads": [session.debugger.get_current_thread()]}
 
 
-class FramesHandler(BaseHandler):
+class FramesHandler(BaseDebugSessionHander):
     @apply_response_schema(GetFramesResponseSchema)
     def get(self, session_id: str, thread_id: int):
         """
