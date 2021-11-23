@@ -1,9 +1,10 @@
+from dataclasses import dataclass
+from enum import Enum
+from typing import Dict, List
 import logging
 import socket
-from threading import Thread
-from typing import List
 
-from google.protobuf.json_format import MessageToDict
+from google.protobuf.json_format import MessageToDict, ParseDict
 from pylarky.eval.http_evaluator import HttpEvaluator
 from pylarky.model.http_message import HttpMessage
 
@@ -20,7 +21,18 @@ from .starlark_debugging_pb2 import (
 logger = logging.getLogger(__file__)
 
 
+class Stepping(str, Enum):
+    NONE = "NONE"
+    INTO = "INTO"
+    OVER = "OVER"
+    OUT = "OUT"
+
+
 class LarkyDebuggerError(Exception):
+    pass
+
+
+class UnknownThreadError(LarkyDebuggerError):
     pass
 
 
@@ -29,97 +41,127 @@ class DataSizeOverflowError(LarkyDebuggerError):
 
 
 class LarkyDebugger:
+    @dataclass
+    class State:
+        debug_threads: Dict = None
+        sock: socket = None
+
     def __init__(self, debug_server_port: int = 7300):
-        self._started = False
         self._debug_server_port = debug_server_port
-        self._larky_thread: Thread = None
-        self._result: HttpMessage = None
-        self._current_debug_thread = None
-        self._sock = None
+        self._state = None
 
     @property
     def started(self):
-        return self._started
+        return self._state is not None
 
     def start(self, code: str, http_message: HttpMessage) -> dict:
-        if self._started:
+        if self.started:
             return
-        # self._larky_thread = Thread(
-        #     target=self._larky_thread,
-        #     kwargs={"code": code, "http_message": http_message},
-        # )
-        # self._larky_thread.start()
 
+        self._state = self.State(debug_threads={})
         self._connect()
-        self._current_debug_thread = self._get_paused_thread()
-        self._started = True
+        self._read_response(max_events=1)
 
     def stop(self):
-        if not self._started:
+        if not self.started:
             return
-        self._sock.close()
-        self._sock = None
-        self._started = False
-
-    def get_current_thread(self) -> dict:
-        return self._current_debug_thread
-
-    def list_frames(self, thread_id: int) -> List[dict]:
-        req = DebugRequest(list_frames=ListFramesRequest(thread_id=thread_id))
-        self._send_request(req)
-        event = self._read_event()
-        return event["list_frames"]["frame"]
+        self._state.sock.close()
+        self._state = None
 
     def set_breakpoints(self, breakpoints: List[dict]):
-        breakpoints_proto = [
-            Breakpoint(location=Location(**breakpoint["location"]))
-            for breakpoint in breakpoints
-        ]
-        req = DebugRequest(
-            set_breakpoints=SetBreakpointsRequest(breakpoint=breakpoints_proto)
+        req = DebugRequest()
+        ParseDict({"set_breakpoints": {"breakpoint": breakpoints}}, req)
+        self._send_request(req)
+        self._read_response()
+
+    def get_threads(self) -> List[dict]:
+        return list(self._state.debug_threads.values())
+
+    def list_frames(self, thread_id: int) -> List[dict]:
+        if thread_id not in self._state.debug_threads:
+            raise UnknownThreadError()
+
+        req = DebugRequest(list_frames=ListFramesRequest(thread_id=thread_id))
+        self._send_request(req)
+        event = self._read_response()
+        return event["list_frames"]["frame"]
+
+    def continue_execution(self, thread_id: int, stepping: Stepping):
+        if thread_id not in self._state.debug_threads:
+            raise UnknownThreadError()
+
+        req = DebugRequest()
+        ParseDict(
+            {
+                "continue_execution": {
+                    "thread_id": thread_id,
+                    "stepping": stepping.value,
+                },
+            },
+            req,
         )
         self._send_request(req)
-        self._read_event()
+
+        self._read_response()
 
     def get_source(self, path: str) -> bytes:
         with open(path) as f:
             return f.read()
 
-    def _get_paused_thread(self):
-        event = self._read_event()
-        thread = event["thread_paused"]["thread"]
-        return {**thread, "id": int(thread["id"])}
-
     def _send_request(self, request: DebugRequest):
         data = request.SerializeToString()
         self._put_size(len(data))
-        self._sock.sendall(data)
+        self._state.sock.sendall(data)
+
+    def _read_response(self, max_events: int = None) -> dict:
+        total_events = 0
+        while max_events is None or total_events < max_events:
+            event = self._read_event()
+            if "thread_paused" in event:
+                thread = event["thread_paused"]["thread"]
+                thread_id = int(thread["id"])
+                self._state.debug_threads[thread_id] = {**thread, "id": thread_id}
+            elif "thread_continued" in event:
+                del self._state.debug_threads[
+                    int(event["thread_continued"]["thread_id"])
+                ]
+            else:
+                return event
+
+            total_events += 1
 
     def _read_event(self) -> dict:
         rsp_size = self._read_size()
-        rsp_data = self._sock.recv(rsp_size)
+        rsp_data = self._state.sock.recv(rsp_size)
         event = DebugEvent()
         event.ParseFromString(rsp_data)
         event_dict = MessageToDict(event, preserving_proto_field_name=True)
-        print(f"Got event from debug server: {event_dict}")
+        print(f"Got event from debug server: {event_dict}")  # TODO: remove after POC
+
+        error = event_dict.get("error")
+        if error:
+            raise LarkyDebuggerError(
+                f"Got error from the debug server: {error['message']}"
+            )
+
         return event_dict
 
     def _connect(self):
-        self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self._sock.connect(("localhost", self._debug_server_port))
+        self._state.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._state.sock.connect(("localhost", self._debug_server_port))
 
     def _put_size(self, size: int):
         while size >= 0x80:
-            self._sock.send(((size & 0xFF) | 0x80).to_bytes(1, "little"))
+            self._state.sock.send(((size & 0xFF) | 0x80).to_bytes(1, "little"))
             size >>= 7
-        self._sock.send((size & 0xFF).to_bytes(1, "little"))
+        self._state.sock.send((size & 0xFF).to_bytes(1, "little"))
 
     def _read_size(self) -> int:
         size = 0
         shift = 0
 
         for i in range(10):
-            byte = int.from_bytes(self._sock.recv(1), "little")
+            byte = int.from_bytes(self._state.sock.recv(1), "little")
             if byte < 0x80:
                 if i == 9 and byte > 1:
                     raise DataSizeOverflowError()
@@ -128,7 +170,3 @@ class LarkyDebugger:
             shift += 7
 
         raise DataSizeOverflowError()
-
-    def _larky_thread(self, code: str, http_message: HttpMessage):
-        evaluator = HttpEvaluator(code, debug_server_port=self._debug_server_port)
-        self._result = evaluator.evaluate(http_message, debug=True)

@@ -1,5 +1,7 @@
 from marshmallow import Schema, fields
+from marshmallow_enum import EnumField
 
+from satellite.debug.larky_debugger import Stepping
 
 class NewSessionRequestSchema(Schema):
     org_id = fields.Str(required=True, example="ACVf8AmMNcrqXi1r2igVQGZ")
@@ -19,7 +21,7 @@ class Location(Schema):
 
 class GetThreadsResponseSchema(Schema):
     class Thread(Schema):
-        id = fields.Str(required=True, example=413)
+        id = fields.Int(required=True, example=413)
         name = fields.Str(required=True, example="thread-413")
         pause_reason = fields.Str(required=True, example="INITIALIZING")
         location = fields.Nested(Location)
@@ -53,3 +55,12 @@ class SetBreakpointsSchema(Schema):
         location = fields.Nested(Location)
 
     breakpoints = fields.List(fields.Nested(Breakpoint))
+
+
+class ThreadContinueSchema(Schema):
+    stepping = EnumField(
+        Stepping,
+        by_value=True,
+        required=True,
+        example=Stepping.OVER.value,
+    )

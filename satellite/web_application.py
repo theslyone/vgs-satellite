@@ -70,16 +70,20 @@ class WebApplication(Application):
             (r'/route/(?P<route_id>[^/]+)', RouteHandler),
             (r'/debug', debug_handlers.SessionsHandler),
             (r'/debug/(?P<session_id>[^/]+)', debug_handlers.SessionHandler),
-            (r'/debug/(?P<session_id>[^/]+)/threads', debug_handlers.ThreadsHandler),
-            (
-                r'/debug/(?P<session_id>[^/]+)/threads/(?P<thread_id>[^/]+)/frames',
-                debug_handlers.FramesHandler,
-            ),
-            (r'/debug/source(?P<path>/.+)', debug_handlers.GetSourceHandler),
             (
                 r'/debug/(?P<session_id>[^/]+)/breakpoints',
                 debug_handlers.BreakpointsHandler,
             ),
+            (r'/debug/(?P<session_id>[^/]+)/threads', debug_handlers.ThreadsHandler),
+            (
+                r'/debug/(?P<session_id>[^/]+)/threads/(?P<thread_id>\d+)/frames',
+                debug_handlers.FramesHandler,
+            ),
+            (
+                r'/debug/(?P<session_id>[^/]+)/threads/(?P<thread_id>\d+)/continue',
+                debug_handlers.TreadContinueHandler,
+            ),
+            (r'/debug/source(?P<path>/.+)', debug_handlers.GetSourceHandler),
         ]
 
         self.spec = build_openapi_spec(api_handlers)

@@ -1,11 +1,13 @@
 from satellite.debug.session import DebugSession
 from ..debug.debug_manager import DebugSessionLimitExceeded, DebugSessionNotFound
+from ..debug.larky_debugger import UnknownThreadError
 from ..schemas.debug import (
     GetFramesResponseSchema,
     GetSessionResponseSchema,
     GetThreadsResponseSchema,
     NewSessionRequestSchema,
     SetBreakpointsSchema,
+    ThreadContinueSchema,
 )
 from . import (
     BaseHandler,
@@ -103,7 +105,7 @@ class ThreadsHandler(BaseDebugSessionHander):
                         schema: ErrorResponseSchema
         """
         session = self.get_session(session_id)
-        return {"threads": [session.debugger.get_current_thread()]}
+        return {"threads": session.debugger.get_threads()}
 
 
 class FramesHandler(BaseDebugSessionHander):
@@ -136,7 +138,49 @@ class FramesHandler(BaseDebugSessionHander):
                         schema: ErrorResponseSchema
         """
         session = self.get_session(session_id)
-        return {"frames": session.debugger.list_frames(int(thread_id))}
+        try:
+            return {"frames": session.debugger.list_frames(int(thread_id))}
+        except UnknownThreadError:
+            raise NotFoundError(f"Unknown thread ID {thread_id}")
+
+
+class TreadContinueHandler(BaseDebugSessionHander):
+    @apply_request_schema(ThreadContinueSchema)
+    def put(self, session_id: str, thread_id: int, validated_data: str):
+        """
+        ---
+        description: Continue thread
+        requestBody:
+        content:
+            application/json:
+                schema: ThreadContinueSchema
+        parameters:
+            - name: session_id
+              in: path
+              description: Debug session ID
+              required: true
+              schema:
+                type: string
+            - name: thread_id
+              in: path
+              description: Thread ID
+              required: true
+              schema:
+                type: integer
+        responses:
+            204:
+                description: Tread successfully proceeded
+            404:
+                content:
+                    application/json:
+                        schema: ErrorResponseSchema
+        """
+        session = self.get_session(session_id)
+        try:
+            session.debugger.continue_execution(int(thread_id), validated_data["stepping"])
+        except UnknownThreadError:
+            raise NotFoundError(f"Unknown thread ID {thread_id}")
+        self.finish_empty_ok()
 
 
 class BreakpointsHandler(BaseDebugSessionHander):
@@ -166,6 +210,7 @@ class BreakpointsHandler(BaseDebugSessionHander):
         """
         session = self.get_session(session_id)
         session.debugger.set_breakpoints(validated_data["breakpoints"])
+        self.finish_empty_ok()
 
 
 class GetSourceHandler(BaseHandler):
