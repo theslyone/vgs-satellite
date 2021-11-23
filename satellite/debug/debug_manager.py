@@ -24,8 +24,8 @@ class DebugManager:
             raise DebugSessionLimitExceeded()
 
         session = DebugSession()
-        session.start()  # TODO: start when a request is available
         self._sessions[session.id] = session
+        session.start()  # TODO: start when a request is available
 
         return session
 
@@ -35,14 +35,18 @@ class DebugManager:
             return session
         raise DebugSessionNotFound()
 
+    def delete_session(self, session_id: str):
+        session = self._sessions.get(session_id)
+        if not session:
+            raise DebugSessionNotFound()
+
+        session.stop()
+
+        del self._sessions[session.id]
+
     def stop(self, session_id: Optional[str] = None):
         if session_id:
-            session = self.get_session(session_id)
-            session.stop()
-            del self._sessions[session_id]
-            return
+            self.delete_session(session_id)
 
-        for session in self._sessions.values():
-            session.stop()
-
-        self._sessions = {}
+        for session_id in list(self._sessions):
+            self.delete_session(session_id)

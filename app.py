@@ -84,6 +84,13 @@ DEFAULT_CONFIG = SatelliteConfig()
     help=('[env:SATELLITE_LOG_PATH] (default:None) Path to a log file.'),
 )
 @click.option(
+    '--log-level',
+    type=click.Choice(['DEBUG', 'INFO', "WARNING", "ERROR"], case_sensitive=False),
+    default="INFO",
+    envvar='SATELLITE_LOG_LEVEL',
+    help=('[env:SATELLITE_LOG_LEVEL] (default:INFO) Logging level.'),
+)
+@click.option(
     '--silent',
     is_flag=True,
     default=None,
@@ -127,7 +134,11 @@ def main(**kwargs):
     except InvalidConfigError as exc:
         raise click.ClickException(f'Invalid config: {exc}') from exc
 
-    satellite_logging.configure(log_path=config.log_path, silent=config.silent)
+    satellite_logging.configure(
+        log_path=config.log_path,
+        silent=config.silent,
+        level=config.log_level,
+    )
     logger = logging.getLogger()
 
     db.configure(config.db_path)

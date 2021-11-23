@@ -81,7 +81,11 @@ class WebApplication(Application):
             ),
             (
                 r'/debug/(?P<session_id>[^/]+)/threads/(?P<thread_id>\d+)/continue',
-                debug_handlers.TreadContinueHandler,
+                debug_handlers.ThreadContinueHandler,
+            ),
+            (
+                r'/debug/(?P<session_id>[^/]+)/threads/(?P<thread_id>\d+)/pause',
+                debug_handlers.ThreadPauseHandler,
             ),
             (r'/debug/source(?P<path>/.+)', debug_handlers.GetSourceHandler),
         ]

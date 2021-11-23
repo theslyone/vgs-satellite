@@ -1,17 +1,14 @@
-from threading import Thread, Event
-from queue import Queue
-from enum import Enum
-from typing import List, Optional
 import logging
 import socket
+from enum import Enum
+from functools import wraps
+from queue import Queue
+from threading import Thread, Event
+from typing import Callable, List, Optional
 
 from google.protobuf.json_format import MessageToDict, ParseDict
 
-from .starlark_debugging_pb2 import (
-    DebugEvent,
-    DebugRequest,
-    ListFramesRequest,
-)
+from .starlark_debugging_pb2 import DebugEvent, DebugRequest
 
 
 logger = logging.getLogger(__file__)
@@ -44,14 +41,24 @@ class UsingStoppedDebugger(LarkyDebuggerError):
     pass
 
 
+def requires_running_debugger(debugger_method: Callable):
+    @wraps(debugger_method)
+    def wrapper(debugger, *args, **kwargs):
+        if debugger.completed:
+            raise UsingStoppedDebugger()
+
+        return debugger_method(debugger, *args, **kwargs)
+
+    return wrapper
+
+
 class LarkyDebugger:
     def __init__(self, debug_server_port: int = 7300):
         self._debug_server_port = debug_server_port
         self._completed = False
         self._debug_threads = {}
-
         self._sock = self._connect()
-        self._stop_event: Event = Event()
+        self._stop_event = Event()
         self._response_queue = Queue()
         self._reader_thread = Thread(target=self._reader_thread)
         self._reader_thread.start()
@@ -59,6 +66,45 @@ class LarkyDebugger:
     @property
     def completed(self):
         return self._completed
+
+    @requires_running_debugger
+    def set_breakpoints(self, breakpoints: List[dict]):
+        self._request({"set_breakpoints": {"breakpoint": breakpoints}})
+
+    @requires_running_debugger
+    def get_threads(self) -> List[dict]:
+        return list(self._debug_threads.values())
+
+    @requires_running_debugger
+    def list_frames(self, thread_id: int) -> List[dict]:
+        if thread_id not in self._debug_threads:
+            raise UnknownThreadError()
+
+        event = self._request({"list_frames": {"thread_id": thread_id}})
+        return event["list_frames"]["frame"]
+
+    @requires_running_debugger
+    def pause_thread(self, thread_id: Optional[int] = 0):
+        if thread_id in self._debug_threads:
+            return
+
+        self._request({"pause_thread": {"thread_id": thread_id}})
+
+    @requires_running_debugger
+    def continue_execution(
+        self,
+        thread_id: Optional[int] = 0,
+        stepping: Optional[Stepping] = None,
+    ):
+        if thread_id != 0 and thread_id not in self._debug_threads:
+            raise UnknownThreadError()
+
+        self._request({
+            "continue_execution": {
+                "thread_id": thread_id,
+                "stepping": stepping.value,
+            },
+        })
 
     def stop(self):
         if self._completed:
@@ -73,62 +119,28 @@ class LarkyDebugger:
 
         self._completed = True
 
-    def set_breakpoints(self, breakpoints: List[dict]):
-        if self.completed:
-            raise UsingStoppedDebugger()
-
-        req = DebugRequest()
-        ParseDict({"set_breakpoints": {"breakpoint": breakpoints}}, req)
-        self._send_request(req)
-        self._response_queue.get()
-
-    def get_threads(self) -> List[dict]:
-        if self.completed:
-            raise UsingStoppedDebugger()
-
-        return list(self._debug_threads.values())
-
-    def list_frames(self, thread_id: int) -> List[dict]:
-        if self.completed:
-            raise UsingStoppedDebugger()
-
-        if thread_id not in self._debug_threads:
-            raise UnknownThreadError()
-
-        req = DebugRequest(list_frames=ListFramesRequest(thread_id=thread_id))
-        self._send_request(req)
-        event = self._response_queue.get()
-        return event["list_frames"]["frame"]
-
-    def continue_execution(self, thread_id: int, stepping: Stepping):
-        if self.completed:
-            raise UsingStoppedDebugger()
-
-        if thread_id not in self._debug_threads:
-            raise UnknownThreadError()
-
-        req = DebugRequest()
-        ParseDict(
-            {
-                "continue_execution": {
-                    "thread_id": thread_id,
-                    "stepping": stepping.value,
-                },
-            },
-            req,
-        )
-        self._send_request(req)
-
-        self._response_queue.get()
-
     def get_source(self, path: str) -> bytes:
         with open(path) as f:
             return f.read()
 
-    def _send_request(self, request: DebugRequest):
-        data = request.SerializeToString()
+    def _request(self, request: dict) -> dict:
+        # Performing request
+        request_proto = DebugRequest()
+        ParseDict(request, request_proto)
+        data = request_proto.SerializeToString()
         self._put_size(len(data))
         self._sock.sendall(data)
+
+        # Reading respone
+        event = self._response_queue.get()
+
+        error = event.get("error")
+        if error:
+            raise LarkyDebuggerError(
+                f"Got error from the debug server: {error['message']}"
+            )
+
+        return event
 
     def _read_event(self) -> Optional[dict]:
         rsp_size = self._read_size()
@@ -138,16 +150,8 @@ class LarkyDebugger:
 
         event = DebugEvent()
         event.ParseFromString(rsp_data)
-        event_dict = MessageToDict(event, preserving_proto_field_name=True)
-        print(f"Got event from debug server: {event_dict}")  # TODO: remove after POC
 
-        error = event_dict.get("error")
-        if error:
-            raise LarkyDebuggerError(
-                f"Got error from the debug server: {error['message']}"
-            )
-
-        return event_dict
+        return MessageToDict(event, preserving_proto_field_name=True)
 
     def _connect(self) -> socket:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -189,6 +193,8 @@ class LarkyDebugger:
 
             if event is None:
                 break
+
+            logging.debug(f"Got event from debug server: {event}")
 
             self._process_event(event)
 

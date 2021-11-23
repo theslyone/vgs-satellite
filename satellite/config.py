@@ -23,6 +23,7 @@ class SatelliteConfig:
     debug: bool = False
     forward_proxy_port: int = 9099
     log_path: Optional[str] = None
+    log_level: str = "INFO"
     reverse_proxy_port: int = 9098
     routes_path: Optional[str] = None
     silent: bool = False

@@ -92,6 +92,32 @@ class SessionHandler(BaseDebugSessionHander):
         """
         return self.get_session(session_id)
 
+    def delete(self, session_id: str):
+        """
+        ---
+        description: Delete debug session
+        parameters:
+            - name: session_id
+              in: path
+              description: Debug session ID
+              required: true
+              schema:
+                type: string
+        responses:
+            204:
+                description: Session was successfully deleted
+            404:
+                content:
+                    application/json:
+                        schema: ErrorResponseSchema
+        """
+        try:
+            self.application.debug_manager.delete_session(session_id)
+        except DebugSessionNotFound:
+            raise NotFoundError(f"Unknown session ID: {session_id}")
+
+        self.finish_empty_ok()
+
 
 class ThreadsHandler(BaseDebugSessionHander):
     @apply_response_schema(GetThreadsResponseSchema)
@@ -164,7 +190,7 @@ class FramesHandler(BaseDebugSessionHander):
             raise NotFoundError(f"Unknown thread ID {thread_id}")
 
 
-class TreadContinueHandler(BaseDebugSessionHander):
+class ThreadContinueHandler(BaseDebugSessionHander):
     @apply_request_schema(ThreadContinueSchema)
     def put(self, session_id: str, thread_id: int, validated_data: str):
         """
@@ -189,7 +215,7 @@ class TreadContinueHandler(BaseDebugSessionHander):
                 type: integer
         responses:
             204:
-                description: Tread successfully proceeded
+                description: Thread successfully proceeded
             404:
                 content:
                     application/json:
@@ -203,8 +229,46 @@ class TreadContinueHandler(BaseDebugSessionHander):
         try:
             session.debugger.continue_execution(
                 int(thread_id),
-                validated_data["stepping"],
+                validated_data.get("stepping"),
             )
+        except UnknownThreadError:
+            raise NotFoundError(f"Unknown thread ID {thread_id}")
+        self.finish_empty_ok()
+
+
+class ThreadPauseHandler(BaseDebugSessionHander):
+    def put(self, session_id: str, thread_id: int):
+        """
+        ---
+        description: Pause thread
+        parameters:
+            - name: session_id
+              in: path
+              description: Debug session ID
+              required: true
+              schema:
+                type: string
+            - name: thread_id
+              in: path
+              description: Thread ID
+              required: true
+              schema:
+                type: integer
+        responses:
+            204:
+                description: Thread successfully proceeded
+            404:
+                content:
+                    application/json:
+                        schema: ErrorResponseSchema
+            400:
+                content:
+                    application/json:
+                        schema: ErrorResponseSchema
+        """
+        session = self.get_session(session_id, DebugSessionState.RUNNING)
+        try:
+            session.debugger.pause_thread(int(thread_id))
         except UnknownThreadError:
             raise NotFoundError(f"Unknown thread ID {thread_id}")
         self.finish_empty_ok()

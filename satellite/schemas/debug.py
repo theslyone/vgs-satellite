@@ -68,6 +68,6 @@ class ThreadContinueSchema(Schema):
     stepping = EnumField(
         Stepping,
         by_value=True,
-        required=True,
+        required=False,
         example=Stepping.OVER.value,
     )
