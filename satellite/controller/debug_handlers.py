@@ -1,4 +1,4 @@
-from satellite.debug.session import DebugSession
+from satellite.debug.session import DebugSession, DebugSessionState
 from ..debug.debug_manager import DebugSessionLimitExceeded, DebugSessionNotFound
 from ..debug.larky_debugger import UnknownThreadError
 from ..schemas.debug import (
@@ -48,11 +48,23 @@ class SessionsHandler(BaseHandler):
 
 
 class BaseDebugSessionHander(BaseHandler):
-    def get_session(self, session_id: str) -> DebugSession:
+    def get_session(
+        self,
+        session_id: str,
+        session_state: DebugSessionState = None,
+    ) -> DebugSession:
         try:
-            return self.application.debug_manager.get_session(session_id)
+            session = self.application.debug_manager.get_session(session_id)
         except DebugSessionNotFound:
             raise NotFoundError(f"Unknown session ID: {session_id}")
+
+        if session_state is not None and session.state != session_state:
+            raise ValidationError(
+                "Requested operation is not allowed for the current session state "
+                f"({session.state.value})."
+            )
+
+        return session
 
 
 class SessionHandler(BaseDebugSessionHander):
@@ -103,8 +115,12 @@ class ThreadsHandler(BaseDebugSessionHander):
                 content:
                     application/json:
                         schema: ErrorResponseSchema
+            400:
+                content:
+                    application/json:
+                        schema: ErrorResponseSchema
         """
-        session = self.get_session(session_id)
+        session = self.get_session(session_id, DebugSessionState.RUNNING)
         return {"threads": session.debugger.get_threads()}
 
 
@@ -136,8 +152,12 @@ class FramesHandler(BaseDebugSessionHander):
                 content:
                     application/json:
                         schema: ErrorResponseSchema
+            400:
+                content:
+                    application/json:
+                        schema: ErrorResponseSchema
         """
-        session = self.get_session(session_id)
+        session = self.get_session(session_id, DebugSessionState.RUNNING)
         try:
             return {"frames": session.debugger.list_frames(int(thread_id))}
         except UnknownThreadError:
@@ -174,10 +194,17 @@ class TreadContinueHandler(BaseDebugSessionHander):
                 content:
                     application/json:
                         schema: ErrorResponseSchema
+            400:
+                content:
+                    application/json:
+                        schema: ErrorResponseSchema
         """
-        session = self.get_session(session_id)
+        session = self.get_session(session_id, DebugSessionState.RUNNING)
         try:
-            session.debugger.continue_execution(int(thread_id), validated_data["stepping"])
+            session.debugger.continue_execution(
+                int(thread_id),
+                validated_data["stepping"],
+            )
         except UnknownThreadError:
             raise NotFoundError(f"Unknown thread ID {thread_id}")
         self.finish_empty_ok()
@@ -203,12 +230,16 @@ class BreakpointsHandler(BaseDebugSessionHander):
         responses:
             204:
                 description: Breakpoints were successfully set
+            404:
+                content:
+                    application/json:
+                        schema: ErrorResponseSchema
             400:
                 content:
                     application/json:
                         schema: ErrorResponseSchema
         """
-        session = self.get_session(session_id)
+        session = self.get_session(session_id, DebugSessionState.RUNNING)
         session.debugger.set_breakpoints(validated_data["breakpoints"])
         self.finish_empty_ok()
 
