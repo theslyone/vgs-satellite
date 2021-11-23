@@ -2,6 +2,8 @@ from marshmallow import Schema, fields
 from marshmallow_enum import EnumField
 
 from satellite.debug.larky_debugger import Stepping
+from satellite.debug.session import DebugSessionState
+
 
 class NewSessionRequestSchema(Schema):
     org_id = fields.Str(required=True, example="ACVf8AmMNcrqXi1r2igVQGZ")
@@ -10,7 +12,12 @@ class NewSessionRequestSchema(Schema):
 
 class GetSessionResponseSchema(Schema):
     id = fields.Str(required=True, example="005d0b98-412a-45e8-a77a-4f764c2d3d36")
-    started = fields.Bool(required=True, example=True)
+    state = EnumField(
+        DebugSessionState,
+        by_value=True,
+        required=True,
+        example=DebugSessionState.INITIALIZING.value,
+    )
 
 
 class Location(Schema):

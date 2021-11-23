@@ -131,7 +131,7 @@ class FramesHandler(BaseDebugSessionHander):
             200:
                 content:
                     application/json:
-                        schema: GetThreadsResponseSchema
+                        schema: GetFramesResponseSchema
             404:
                 content:
                     application/json:
@@ -151,9 +151,9 @@ class TreadContinueHandler(BaseDebugSessionHander):
         ---
         description: Continue thread
         requestBody:
-        content:
-            application/json:
-                schema: ThreadContinueSchema
+            content:
+                application/json:
+                    schema: ThreadContinueSchema
         parameters:
             - name: session_id
               in: path
@@ -199,7 +199,7 @@ class BreakpointsHandler(BaseDebugSessionHander):
         requestBody:
             content:
                 application/json:
-                    schema: NewSessionRequestSchema
+                    schema: SetBreakpointsSchema
         responses:
             204:
                 description: Breakpoints were successfully set
