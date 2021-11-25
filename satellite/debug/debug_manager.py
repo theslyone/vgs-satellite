@@ -16,16 +16,29 @@ class DebugSessionNotFound(DebugManagerError):
 
 
 class DebugManager:
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        larky_gateway_host: str,
+        larky_gateway_port: int,
+        larky_debug_server_port: int,
+    ) -> None:
+        self._larky_gateway_host = larky_gateway_host
+        self._larky_gateway_port = larky_gateway_port
+        self._larky_debug_server_port = larky_debug_server_port
         self._sessions: Dict[str, DebugSession] = {}
 
     def new_session(self, org_id: str, vault: str) -> DebugSession:
         if self._sessions:
             raise DebugSessionLimitExceeded()
 
-        session = DebugSession()
+        session = DebugSession(
+            larky_gateway_host=self._larky_gateway_host ,
+            larky_gateway_port=self._larky_gateway_port,
+            larky_debug_server_port=self._larky_debug_server_port,
+            org_id=org_id,
+            vault=vault,
+        )
         self._sessions[session.id] = session
-        session.start()  # TODO: start when a request is available
 
         return session
 

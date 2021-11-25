@@ -120,6 +120,30 @@ DEFAULT_CONFIG = SatelliteConfig()
         'DB will be deleted.'
     ),
 )
+@click.option(
+    '--larky-gateway-host',
+    type=str,
+    envvar='SATELLITE_LARKY_GATEWAY_HOST',
+    help=(
+        '[env:SATELLITE_LARKY_GATEWAY_HOST] (default:localhost) Larky gateway host'
+    ),
+)
+@click.option(
+    '--larky-gateway-port',
+    type=str,
+    envvar='SATELLITE_LARKY_GATEWAY_PORT',
+    help=(
+        '[env:SATELLITE_LARKY_GATEWAY_PORT] (default:50051) Larky gateway port'
+    ),
+)
+@click.option(
+    '--larky-debug-server-port',
+    type=str,
+    envvar='SATELLITE_LARKY_DEBUG_SERVER_PORT',
+    help=(
+        '[env:SATELLITE_LARKY_DEBUG_SERVER_PORT] (default:7300) Larky debug server port'
+    ),
+)
 def main(**kwargs):
     set_start_method('fork')  # PyInstaller supports only fork start method
 

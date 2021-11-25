@@ -36,6 +36,8 @@ decorator==4.4.2
     # via jsonpath-ng
 flask==1.1.2
     # via mitmproxy
+grpcio==1.42.0
+    # via -r requirements.in
 h11==0.12.0
     # via wsproto
 h2==4.0.0
@@ -119,6 +121,7 @@ ruamel.yaml==0.16.12
 six==1.15.0
     # via
     #   cryptography
+    #   grpcio
     #   jsonpath-ng
     #   protobuf
     #   pyopenssl

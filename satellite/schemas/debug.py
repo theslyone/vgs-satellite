@@ -18,6 +18,7 @@ class GetSessionResponseSchema(Schema):
         required=True,
         example=DebugSessionState.INITIALIZING.value,
     )
+    error = fields.Str(required=False, example="Some unrecoverable error")
 
 
 class Location(Schema):

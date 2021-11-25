@@ -29,6 +29,9 @@ class SatelliteConfig:
     silent: bool = False
     volatile_aliases_ttl: int = 3600
     web_server_port: int = 8089
+    larky_gateway_host: str = "localhost"
+    larky_gateway_port: int = 50051
+    larky_debug_server_port: int = 7300
 
 
 SatelliteConfigSchema = marshmallow_dataclass.class_schema(SatelliteConfig)

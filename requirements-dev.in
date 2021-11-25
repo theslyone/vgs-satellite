@@ -7,3 +7,4 @@ factory_boy
 pyinstaller
 freezegun
 coverage
+grpcio-tools

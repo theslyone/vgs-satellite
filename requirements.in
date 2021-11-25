@@ -13,3 +13,4 @@ pylarky
 apispec
 apispec-webframeworks
 protobuf
+grpcio

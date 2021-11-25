@@ -1,5 +1,6 @@
 import logging
 import socket
+from concurrent.futures import Future
 from enum import Enum
 from functools import wraps
 from queue import Queue
@@ -7,6 +8,7 @@ from threading import Thread, Event
 from typing import Callable, List, Optional
 
 from google.protobuf.json_format import MessageToDict, ParseDict
+from pylarky.model.http_message import HttpMessage
 
 from .starlark_debugging_pb2 import DebugEvent, DebugRequest
 
@@ -53,11 +55,24 @@ def requires_running_debugger(debugger_method: Callable):
 
 
 class LarkyDebugger:
-    def __init__(self, debug_server_port: int = 7300):
-        self._debug_server_port = debug_server_port
+    def __init__(
+        self,
+        larky_script: str,
+        message: HttpMessage,
+        result_future: Future,
+        debug_server_port: int = 7300,
+    ):
         self._completed = False
+        self._result_future = result_future
+
+        self._larky_script = larky_script
+        self._request_message = message
+
+        self._debug_server_port = debug_server_port
         self._debug_threads = {}
+
         self._sock = self._connect()
+
         self._stop_event = Event()
         self._response_queue = Queue()
         self._reader_thread = Thread(target=self._reader_thread)
@@ -116,6 +131,9 @@ class LarkyDebugger:
         if self._sock:
             self._sock.close()
             self._sock = None
+
+        if not self._result_future.done():
+            self._result_future.cancel()
 
         self._completed = True
 
@@ -197,6 +215,8 @@ class LarkyDebugger:
             logging.debug(f"Got event from debug server: {event}")
 
             self._process_event(event)
+
+        self._result_future.set_result(self._request_message)
 
         if not self._stop_event.is_set():
             self.stop()

@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+package larky_gateway;
+
+service LarkyGateway {
+    rpc DebugSession(stream ClientEvent) returns (stream ServerEvent);
+}
+
+// Client events
+message ClientEvent {
+    oneof payload {
+        NewSessionEvent new_session = 101;
+        ResultReadyEvent result_ready = 102;
+    }
+}
+
+message NewSessionEvent {
+    string session_id = 1;
+    string vault = 2;
+    string org_id = 3;
+}
+
+message ResultReadyEvent {
+    HttpMessage http_message = 1;
+}
+
+// Server events
+message ServerEvent {
+    oneof payload {
+        ProxyRequestEvent proxy_request = 101;
+    }
+}
+
+message ProxyRequestEvent {
+    HttpMessage http_message = 1;
+    string larky_script = 2;
+}
+
+// HTTP message represents request and response data
+message HttpMessage {
+    string url = 1;
+    string data = 2;
+    map<string, string> headers = 3;
+}
