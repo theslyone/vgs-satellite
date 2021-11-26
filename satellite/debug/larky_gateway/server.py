@@ -24,7 +24,7 @@ MOCK_REQUEST = ProxyRequestEvent(
     larky_script="""
 def process(input_message):
     print("start script")
-"""
+""",
 )
 
 

@@ -92,11 +92,13 @@ class DebugSession:
 
     def _gateway_client_events(self):
         logger.debug("Sending NewSeesion event to Larky gateway")
-        yield ClientEvent(new_session=NewSessionEvent(
-            session_id=self.id,
-            org_id=self._org_id,
-            vault=self._vault,
-        ))
+        yield ClientEvent(
+            new_session=NewSessionEvent(
+                session_id=self.id,
+                org_id=self._org_id,
+                vault=self._vault,
+            )
+        )
 
         logger.debug("Waiting for the result before sending it to Larky gateway")
         message = self._result_future.result()
@@ -117,9 +119,7 @@ class DebugSession:
             stub = LarkyGatewayStub(channel)
 
             for event in stub.DebugSession(self._gateway_client_events()):
-                logger.debug(
-                    f"Got event from LarkyGateway {MessageToJson(event)}"
-                )
+                logger.debug(f"Got event from LarkyGateway {MessageToJson(event)}")
 
                 event_type = event.WhichOneof("payload")
                 if event_type != "proxy_request":

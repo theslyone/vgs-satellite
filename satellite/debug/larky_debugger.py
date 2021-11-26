@@ -114,12 +114,14 @@ class LarkyDebugger:
         if thread_id != 0 and thread_id not in self._debug_threads:
             raise UnknownThreadError()
 
-        self._request({
-            "continue_execution": {
-                "thread_id": thread_id,
-                "stepping": stepping.value,
-            },
-        })
+        self._request(
+            {
+                "continue_execution": {
+                    "thread_id": thread_id,
+                    "stepping": stepping.value,
+                },
+            }
+        )
 
     def stop(self):
         if self._completed:
@@ -195,7 +197,7 @@ class LarkyDebugger:
                 if i == 9 and byte > 1:
                     raise DataSizeOverflowError()
                 return size | (byte << shift)
-            size |= (byte & 0x7f) << shift
+            size |= (byte & 0x7F) << shift
             shift += 7
 
         raise DataSizeOverflowError()
