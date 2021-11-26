@@ -125,9 +125,9 @@ class WebApplication(Application):
         )
 
         self.debug_manager = DebugManager(
-            larky_gateway_host=config.larky_gateway_host,
-            larky_gateway_port=config.larky_gateway_port,
-            larky_debug_server_port=config.larky_debug_server_port,
+            larky_gateway_host=self.config.larky_gateway_host,
+            larky_gateway_port=self.config.larky_gateway_port,
+            larky_debug_server_port=self.config.larky_debug_server_port,
         )
 
     def _proxy_event_handler(self, event, loop):
