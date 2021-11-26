@@ -11,6 +11,7 @@ from google.protobuf.json_format import MessageToDict, ParseDict
 from pylarky.model.http_message import HttpMessage
 
 from .starlark_debugging_pb2 import DebugEvent, DebugRequest
+from .utils import read_uint_from_sock, put_uint_to_sock
 
 
 logger = logging.getLogger(__file__)
@@ -59,10 +60,11 @@ class LarkyDebugger:
         self,
         larky_script: str,
         message: HttpMessage,
-        result_future: Future,
+        result_future: Optional[Future] = None,
         debug_server_port: int = 7300,
     ):
         self._completed = False
+        self._result = None
         self._result_future = result_future
 
         self._larky_script = larky_script
@@ -71,16 +73,22 @@ class LarkyDebugger:
         self._debug_server_port = debug_server_port
         self._debug_threads = {}
 
-        self._sock = self._connect()
+        self._sock = None
 
         self._stop_event = Event()
         self._response_queue = Queue()
         self._reader_thread = Thread(target=self._reader_thread)
+
+        self._connect()
         self._reader_thread.start()
 
     @property
     def completed(self):
         return self._completed
+
+    @property
+    def result(self):
+        return self._result
 
     @requires_running_debugger
     def set_breakpoints(self, breakpoints: List[dict]):
@@ -134,7 +142,7 @@ class LarkyDebugger:
             self._sock.close()
             self._sock = None
 
-        if not self._result_future.done():
+        if self._result_future is not None and not self._result_future.done():
             self._result_future.cancel()
 
         self._completed = True
@@ -148,7 +156,7 @@ class LarkyDebugger:
         request_proto = DebugRequest()
         ParseDict(request, request_proto)
         data = request_proto.SerializeToString()
-        self._put_size(len(data))
+        put_uint_to_sock(len(data), self._sock)
         self._sock.sendall(data)
 
         # Reading respone
@@ -163,7 +171,7 @@ class LarkyDebugger:
         return event
 
     def _read_event(self) -> Optional[dict]:
-        rsp_size = self._read_size()
+        rsp_size = read_uint_from_sock(self._sock)
         rsp_data = self._sock.recv(rsp_size)
         if not rsp_data:
             return None
@@ -173,34 +181,12 @@ class LarkyDebugger:
 
         return MessageToDict(event, preserving_proto_field_name=True)
 
-    def _connect(self) -> socket:
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    def _connect(self):
+        self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
-            sock.connect(("localhost", self._debug_server_port))
+            self._sock.connect(("localhost", self._debug_server_port))
         except ConnectionRefusedError:
             raise UnableToConnectToDebugServer()
-        return sock
-
-    def _put_size(self, size: int):
-        while size >= 0x80:
-            self._sock.send(((size & 0xFF) | 0x80).to_bytes(1, "little"))
-            size >>= 7
-        self._sock.send((size & 0xFF).to_bytes(1, "little"))
-
-    def _read_size(self) -> int:
-        size = 0
-        shift = 0
-
-        for i in range(10):
-            byte = int.from_bytes(self._sock.recv(1), "little")
-            if byte < 0x80:
-                if i == 9 and byte > 1:
-                    raise DataSizeOverflowError()
-                return size | (byte << shift)
-            size |= (byte & 0x7F) << shift
-            shift += 7
-
-        raise DataSizeOverflowError()
 
     def _reader_thread(self):
         while not self._stop_event.is_set():
@@ -212,13 +198,12 @@ class LarkyDebugger:
                 pass
 
             if event is None:
+                self._set_result(self._request_message)  # Remove after larky is ready
                 break
 
             logging.debug(f"Got event from debug server: {event}")
 
             self._process_event(event)
-
-        self._result_future.set_result(self._request_message)
 
         if not self._stop_event.is_set():
             self.stop()
@@ -235,3 +220,10 @@ class LarkyDebugger:
             return
 
         self._response_queue.put(event)
+
+    def _set_result(self, result: HttpMessage):
+        if self._result is not None:
+            return
+        self._result = result
+        if self._result_future is not None:
+            self._result_future.set_result(result)

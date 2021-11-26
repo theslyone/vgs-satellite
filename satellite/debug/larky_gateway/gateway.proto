@@ -11,6 +11,7 @@ message ClientEvent {
     oneof payload {
         NewSessionEvent new_session = 101;
         ResultReadyEvent result_ready = 102;
+        ErrorEvent error = 103;
     }
 }
 
@@ -22,6 +23,10 @@ message NewSessionEvent {
 
 message ResultReadyEvent {
     HttpMessage http_message = 1;
+}
+
+message ErrorEvent {
+    string message = 1;
 }
 
 // Server events

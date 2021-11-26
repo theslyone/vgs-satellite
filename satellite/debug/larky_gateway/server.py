@@ -38,6 +38,8 @@ class LarkyGatewayServicer(gateway_pb2_grpc.LarkyGatewayServicer):
                 yield ServerEvent(proxy_request=MOCK_REQUEST)
             elif event_type == "result_ready":
                 logging.info("Result is ready")
+            elif event_type == "error":
+                logging.error(f"Got error from client: {event.error.message}")
             else:
                 raise Exception(f"Unknown event type: {event_type}")
 

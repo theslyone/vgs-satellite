@@ -1,5 +1,6 @@
 from typing import Dict, Optional
 
+from .larky_gateway.client import LarkyGatewayClient
 from .session import DebugSession
 
 
@@ -22,8 +23,10 @@ class DebugManager:
         larky_gateway_port: int,
         larky_debug_server_port: int,
     ) -> None:
-        self._larky_gateway_host = larky_gateway_host
-        self._larky_gateway_port = larky_gateway_port
+        self._larky_gateway_client = LarkyGatewayClient(
+            gateway_host=larky_gateway_host,
+            gateway_port=larky_gateway_port,
+        )
         self._larky_debug_server_port = larky_debug_server_port
         self._sessions: Dict[str, DebugSession] = {}
 
@@ -32,9 +35,8 @@ class DebugManager:
             raise DebugSessionLimitExceeded()
 
         session = DebugSession(
-            larky_gateway_host=self._larky_gateway_host,
-            larky_gateway_port=self._larky_gateway_port,
             larky_debug_server_port=self._larky_debug_server_port,
+            larky_gateway_client=self._larky_gateway_client,
             org_id=org_id,
             vault=vault,
         )

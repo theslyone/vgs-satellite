@@ -2,21 +2,9 @@ import logging
 import uuid
 from concurrent.futures import Future
 from enum import Enum
-from threading import Thread
-
-import grpc
-from google.protobuf.json_format import MessageToJson
-from pylarky.model.http_message import HttpMessage
 
 from .larky_debugger import LarkyDebugger
-from .larky_gateway.gateway_pb2_grpc import LarkyGatewayStub
-from .larky_gateway.gateway_pb2 import (
-    ClientEvent,
-    NewSessionEvent,
-    ResultReadyEvent,
-    HttpMessage as HttpMessageProto,
-)
-
+from .larky_gateway.client import LarkyGatewayClient
 
 logger = logging.getLogger(__file__)
 
@@ -31,9 +19,8 @@ class DebugSessionState(Enum):
 class DebugSession:
     def __init__(
         self,
-        larky_gateway_host: str,
-        larky_gateway_port: int,
         larky_debug_server_port: int,
+        larky_gateway_client: LarkyGatewayClient,
         org_id: str,
         vault: str,
     ):
@@ -41,16 +28,21 @@ class DebugSession:
         self._org_id = org_id
         self._vault = vault
 
-        self._larky_gateway_host = larky_gateway_host
-        self._larky_gateway_port = larky_gateway_port
+        self._larky_gateway_client = larky_gateway_client
         self._larky_debug_server_port = larky_debug_server_port
 
-        self._result_future = Future()
-        self._gateway_client_thread = Thread(
-            target=self._gateway_client,
-            daemon=True,  # This is a hack - should find a way to shutdown it gracefully
+        self._request_ready_future = Future()
+        self._request_ready_future.add_done_callback(self._request_ready_callback)
+
+        self._result_ready_future = Future()
+
+        self._larky_gateway_client.new_session(
+            session_id=self._id,
+            org_id=self._org_id,
+            vault=self._vault,
+            request_ready=self._request_ready_future,
+            result_ready=self._result_ready_future,
         )
-        self._gateway_client_thread.start()
 
         self._error = None
 
@@ -90,54 +82,11 @@ class DebugSession:
         if self._debugger:
             self._debugger.stop()
 
-    def _gateway_client_events(self):
-        logger.debug("Sending NewSeesion event to Larky gateway")
-        yield ClientEvent(
-            new_session=NewSessionEvent(
-                session_id=self.id,
-                org_id=self._org_id,
-                vault=self._vault,
-            )
+    def _request_ready_callback(self, future: Future):
+        request = future.result()
+        self._debugger = LarkyDebugger(
+            larky_script=request["script"],
+            message=request["message"],
+            result_future=self._result_ready_future,
+            debug_server_port=self._larky_debug_server_port,
         )
-
-        logger.debug("Waiting for the result before sending it to Larky gateway")
-        message = self._result_future.result()
-
-        logger.debug("Sending result to Larky gateway")
-        message_proto = HttpMessageProto(
-            url=message.url,
-            data=message.data,
-            headers=message.headers,
-        )
-        yield ClientEvent(result_ready=ResultReadyEvent(http_message=message_proto))
-
-    def _gateway_client(self):
-        try:
-            endpoint = f"{self._larky_gateway_host}:{self._larky_gateway_port}"
-            logger.debug(f"Connecting to Larky gateway at {endpoint}")
-            channel = grpc.insecure_channel(endpoint)
-            stub = LarkyGatewayStub(channel)
-
-            for event in stub.DebugSession(self._gateway_client_events()):
-                logger.debug(f"Got event from LarkyGateway {MessageToJson(event)}")
-
-                event_type = event.WhichOneof("payload")
-                if event_type != "proxy_request":
-                    raise Exception(f"Unexpected LarkyGateway event type: {event_type}")
-
-                request = event.proxy_request
-                message = HttpMessage(
-                    url=request.http_message.url,
-                    data=request.http_message.data,
-                    headers=request.http_message.headers,
-                )
-                self._debugger = LarkyDebugger(
-                    larky_script=request.larky_script,
-                    message=message,
-                    result_future=self._result_future,
-                    debug_server_port=self._larky_debug_server_port,
-                )
-
-        except Exception:
-            self._error = "Larky gate way error"
-            raise
