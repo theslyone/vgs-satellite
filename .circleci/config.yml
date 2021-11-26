@@ -82,7 +82,7 @@ jobs:
 
   python_test_dist_macos:
     macos:
-      xcode: 10.3.0
+      xcode: 11.7.0
     working_directory: ~/app
     steps:
       - checkout
@@ -132,7 +132,7 @@ jobs:
 
   build_app_macos:
     macos:
-      xcode: 10.2.1
+      xcode: 11.7.0
     working_directory: ~/app
     steps:
       - checkout
