@@ -76,17 +76,26 @@ class DebugSession:
         self._debugger = LarkyDebugger(debug_server_port=self._larky_debug_server_port)
 
     def stop(self):
-        if self.state == DebugSessionState.COMPLETED:
+        if self.state not in (
+            DebugSessionState.RUNNING,
+            DebugSessionState.INITIALIZING,
+        ):
             return
 
         if self._debugger:
             self._debugger.stop()
 
     def _request_ready_callback(self, future: Future):
-        request = future.result()
-        self._debugger = LarkyDebugger(
-            larky_script=request["script"],
-            message=request["message"],
-            result_future=self._result_ready_future,
-            debug_server_port=self._larky_debug_server_port,
-        )
+        try:
+            request = future.result()
+        except Exception as exc:
+            self._error = "Error getting request from Larky gateway"
+            self.stop()
+            logger.exception(exc)
+        else:
+            self._debugger = LarkyDebugger(
+                larky_script=request["script"],
+                message=request["message"],
+                result_future=self._result_ready_future,
+                debug_server_port=self._larky_debug_server_port,
+            )

@@ -53,33 +53,41 @@ class LarkyGatewayClient:
         request_ready: Future,
         result_ready: Future,
     ):
-        logger.debug(f"Connecting to Larky gateway at {self._endpoint}")
-        channel = grpc.insecure_channel(self._endpoint)
-        stub = LarkyGatewayStub(channel)
+        try:
+            logger.debug(f"Connecting to Larky gateway at {self._endpoint}")
+            channel = grpc.insecure_channel(self._endpoint)
+            stub = LarkyGatewayStub(channel)
 
-        client_events = self._client_events_iterator(new_session_event, result_ready)
-
-        for event in stub.DebugSession(client_events):
-            logger.debug(f"Got event from LarkyGateway {MessageToJson(event)}")
-
-            event_type = event.WhichOneof("payload")
-            # Don't expect other events than proxy_request for now
-            if event_type != "proxy_request":
-                raise Exception(f"Unexpected LarkyGateway event type: {event_type}")
-
-            # Notifying that a request is ready
-            request = event.proxy_request
-            message = HttpMessage(
-                url=request.http_message.url,
-                data=request.http_message.data,
-                headers=request.http_message.headers,
+            client_events = self._client_events_iterator(
+                new_session_event=new_session_event,
+                result_ready=result_ready,
             )
-            request_ready.set_result(
-                {
-                    "message": message,
-                    "script": request.larky_script,
-                }
-            )
+
+            for event in stub.DebugSession(client_events):
+                logger.debug(f"Got event from LarkyGateway {MessageToJson(event)}")
+
+                event_type = event.WhichOneof("payload")
+                # Don't expect other events than proxy_request for now
+                if event_type != "proxy_request":
+                    raise Exception(f"Unexpected LarkyGateway event type: {event_type}")
+
+                # Notifying that a request is ready
+                request = event.proxy_request
+                message = HttpMessage(
+                    url=request.http_message.url,
+                    data=request.http_message.data,
+                    headers=request.http_message.headers,
+                )
+                request_ready.set_result(
+                    {
+                        "message": message,
+                        "script": request.larky_script,
+                    }
+                )
+        except Exception as exc:
+            if not request_ready.done():
+                request_ready.set_exception(exc)
+            raise
 
     def _client_events_iterator(
         self,
