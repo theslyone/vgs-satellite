@@ -44,7 +44,7 @@ class SessionsHandler(BaseHandler):
                 vault=validated_data["vault"],
             )
         except DebugSessionLimitExceeded:
-            raise ValidationError("Debug sessions limit has been excceded")
+            raise ValidationError("Debug sessions limit has been exceeded")
 
     def delete(self):
         """
