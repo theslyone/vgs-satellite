@@ -1,0 +1,31 @@
+version: "3.2"
+services:
+  satellite:
+    container_name: vgs-satellite
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - 8089:8089
+      - 9098:9098
+      - 9099:9099
+    volumes:
+      - ~/.vgs-satellite:/data
+      - .:/app
+    environment:
+      SATELLITE_DEBUG: "true"
+      SATELLITE_LOG_LEVEL: "DEBUG"
+      SATELLITE_LARKY_DEBUG_SERVER_HOST: docker.for.mac.localhost
+      SATELLITE_LARKY_GATEWAY_HOST: larky_gateway_server
+      SATELLITE_LARKY_GATEWAY_PORT: 50051
+
+  larky_gateway_server:
+    container_name: larky-gateway-server
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - 50051:50051
+    volumes:
+      - .:/app
+    entrypoint: ["python", "-m", "satellite.debug.larky_gateway.server"]

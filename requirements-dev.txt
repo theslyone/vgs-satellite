@@ -160,7 +160,7 @@ pyinstaller-hooks-contrib==2020.11
     # via pyinstaller
 pyinstaller==4.2
     # via -r requirements-dev.in
-pylarky==0.0.5
+pylarky==0.5.2
     # via -r requirements.in
 pyopenssl==20.0.1
     # via mitmproxy

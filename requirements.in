@@ -9,7 +9,7 @@ marshmallow-oneofschema
 lxml
 tblib
 alembic
-pylarky
+pylarky==0.5.2
 apispec
 apispec-webframeworks
 protobuf

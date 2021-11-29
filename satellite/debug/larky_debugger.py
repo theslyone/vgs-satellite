@@ -62,6 +62,7 @@ class LarkyDebugger:
         message: HttpMessage,
         result_future: Optional[Future] = None,
         debug_server_port: int = 7300,
+        debug_server_host: str = "localhost",
     ):
         self._completed = False
         self._result = None
@@ -70,6 +71,7 @@ class LarkyDebugger:
         self._larky_script = larky_script
         self._request_message = message
 
+        self._debug_server_host = debug_server_host
         self._debug_server_port = debug_server_port
         self._debug_threads = {}
 
@@ -184,7 +186,9 @@ class LarkyDebugger:
     def _connect(self):
         self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
-            self._sock.connect(("localhost", self._debug_server_port))
+            endpoint = (self._debug_server_host, self._debug_server_port)
+            logger.debug(f"Connecting to the debug server {endpoint}")
+            self._sock.connect(endpoint)
         except ConnectionRefusedError:
             raise UnableToConnectToDebugServer()
 
@@ -196,6 +200,8 @@ class LarkyDebugger:
                 event = self._read_event()
             except OSError:
                 pass
+            except Exception:
+                logger.exception("Error during reading event from the debug server")
 
             if event is None:
                 self._set_result(self._request_message)  # Remove after larky is ready
