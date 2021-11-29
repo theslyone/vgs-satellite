@@ -46,6 +46,17 @@ class SessionsHandler(BaseHandler):
         except DebugSessionLimitExceeded:
             raise ValidationError("Debug sessions limit has been excceded")
 
+    def delete(self):
+        """
+        ---
+        description: Delete all debug sessions
+        responses:
+            204:
+                description: Session was successfully deleted
+        """
+        self.application.debug_manager.delete_all_sessions()
+        self.finish_empty_ok()
+
 
 class BaseDebugSessionHander(BaseHandler):
     def get_session(

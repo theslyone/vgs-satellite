@@ -1,4 +1,4 @@
-from typing import Dict, Optional
+from typing import Dict
 
 from .larky_gateway.client import LarkyGatewayClient
 from .session import DebugSession
@@ -62,9 +62,9 @@ class DebugManager:
 
         del self._sessions[session.id]
 
-    def stop(self, session_id: Optional[str] = None):
-        if session_id:
-            self.delete_session(session_id)
-
+    def delete_all_sessions(self):
         for session_id in list(self._sessions):
             self.delete_session(session_id)
+
+    def stop(self):
+        self.delete_all_sessions()
