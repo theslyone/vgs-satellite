@@ -13,6 +13,7 @@ DEFAULT_CONFIG_VALUES = MappingProxyType(
         'db_path': str(Path.home() / '.vgs-satellite' / 'db.sqlite'),
         'debug': False,
         'forward_proxy_port': 9099,
+        'larky_debug_server_host': 'localhost',
         'larky_debug_server_port': 7300,
         'larky_gateway_host': 'localhost',
         'larky_gateway_port': 50051,
