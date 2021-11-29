@@ -52,3 +52,4 @@ black.toml
 
 # Bazel (Delete after POC)
 bazel_example/bazel-*
+bazel_example/rules.bzl

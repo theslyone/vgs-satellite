@@ -149,10 +149,6 @@ class LarkyDebugger:
 
         self._completed = True
 
-    def get_source(self, path: str) -> bytes:
-        with open(path) as f:
-            return f.read()
-
     def _request(self, request: dict) -> dict:
         # Performing request
         request_proto = DebugRequest()

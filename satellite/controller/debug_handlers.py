@@ -309,7 +309,7 @@ class BreakpointsHandler(BaseDebugSessionHander):
 
 
 class GetSourceHandler(BaseHandler):
-    def get(self, path: int):
+    def get(self, path: str):
         """
         ---
         description: Get source code
@@ -328,6 +328,13 @@ class GetSourceHandler(BaseHandler):
                     application/json:
                         schema: ErrorResponseSchema
         """
+        # Remove after POC [START]
+        larky_debug_server_host = self.application.config.larky_debug_server_host
+        if larky_debug_server_host == "docker.for.mac.localhost":
+            idx = path.find("/bazel_example")
+            if idx > 0:
+                path = path[idx:]
+        # Remove after POC [END]
         try:
             with open(path) as f:
                 content = f.read()
