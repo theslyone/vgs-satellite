@@ -179,7 +179,11 @@ class LarkyDebugger:
             return None
 
         event = DebugEvent()
-        event.ParseFromString(rsp_data)
+        try:
+            event.ParseFromString(rsp_data)
+        except Exception:
+            logger.error(f"Unable to parse event data from debug server: {rsp_data}")
+            raise
 
         return MessageToDict(event, preserving_proto_field_name=True)
 
