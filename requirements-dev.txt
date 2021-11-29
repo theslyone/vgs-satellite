@@ -7,9 +7,7 @@
 alembic==1.5.1
     # via -r requirements.in
 altgraph==0.17
-    # via
-    #   macholib
-    #   pyinstaller
+    # via pyinstaller
 apispec-webframeworks==0.5.2
     # via -r requirements.in
 apispec[yaml]==4.0.0
@@ -93,8 +91,6 @@ ldap3==2.8.1
     # via mitmproxy
 lxml==4.6.2
     # via -r requirements.in
-macholib==1.14
-    # via pyinstaller
 mako==1.1.4
     # via alembic
 markupsafe==1.1.1

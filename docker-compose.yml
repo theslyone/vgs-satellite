@@ -12,11 +12,20 @@ services:
     volumes:
       - ~/.vgs-satellite:/data
 
+  pin_requirements:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - .:/app
+    entrypoint: "make"
+    command: ["pin_requirements"]
+
   test:
     container_name: vgs-satellite-tests
     build:
       context: .
-      dockerfile: Dockerfile.test
+      dockerfile: Dockerfile.dev
 
   satellite_dev:
     container_name: vgs-satellite-dev
