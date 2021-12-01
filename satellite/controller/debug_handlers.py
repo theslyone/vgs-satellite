@@ -14,7 +14,7 @@ from . import (
     apply_request_schema,
     apply_response_schema,
 )
-from .exceptions import NotFoundError, ValidationError
+from .exceptions import ConflictError, NotFoundError, ValidationError
 
 
 class SessionsHandler(BaseHandler):
@@ -70,7 +70,7 @@ class BaseDebugSessionHander(BaseHandler):
             raise NotFoundError(f"Unknown session ID: {session_id}")
 
         if session_state is not None and session.state != session_state:
-            raise ValidationError(
+            raise ConflictError(
                 "Requested operation is not allowed for the current session state "
                 f"({session.state.value})."
             )

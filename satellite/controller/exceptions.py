@@ -37,3 +37,8 @@ class InvalidMethod(APIError):
 class ValidationError(APIError):
     def __init__(self, message: str, details: dict = None):
         super().__init__(400, 'Invalid request', message, details)
+
+
+class ConflictError(APIError):
+    def __init__(self, message: str):
+        super().__init__(409, 'Conflict', message)
