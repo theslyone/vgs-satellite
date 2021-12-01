@@ -1,6 +1,6 @@
 import logging
 from concurrent.futures import CancelledError, Future
-from threading import Thread
+from threading import Thread, current_thread
 
 import grpc
 from google.protobuf.json_format import MessageToJson
@@ -17,6 +17,10 @@ from .gateway_pb2 import (
 
 
 logger = logging.getLogger("satellite.debug.larky_gateway.client")
+
+
+CLIENT_THREAD_NAME = "LarkyGatewayClientThread"
+CLIENT_EVENTS_THREAD_NAME = "LarkyGatewayClientEventsThread"
 
 
 class LarkyGatewayClient:
@@ -43,6 +47,7 @@ class LarkyGatewayClient:
                 "request_ready": request_ready,
                 "result_ready": result_ready,
             },
+            name=CLIENT_THREAD_NAME,
             daemon=True,  # This is a hack - should find a way to shutdown it gracefully
         )
         session_thread.start()
@@ -94,6 +99,12 @@ class LarkyGatewayClient:
         new_session_event: NewSessionEvent,
         result_ready: Future,
     ):
+        # GRPC lib spawns a separate thread for events sending. Here we change the
+        # thread name for more informative logging.
+        thread = current_thread()
+        if thread.name != CLIENT_THREAD_NAME:
+            thread.name = CLIENT_EVENTS_THREAD_NAME
+
         logger.debug("Sending NewSeesion event to Larky gateway")
         yield ClientEvent(new_session=new_session_event)
 

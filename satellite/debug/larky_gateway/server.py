@@ -19,11 +19,30 @@ MOCK_REQUEST = ProxyRequestEvent(
     http_message=HttpMessage(
         url="http://example.com",
         data='{"some": "data"}',
-        headers={"Content-type": "application/json"},
+        headers={"Content-type": "application/json", "Key": "1234567890"},
     ),
     larky_script="""
+load('@stdlib//json', 'json')
+load("@stdlib//hashlib", "hashlib")
+
 def process(input_message):
     print("start script")
+    decoded_payload = json.decode(input_message.data)
+    key=input_message.get_header("Key")
+    input_message.remove_header("Key")
+    signature = hashlib.sha512(bytes(key, encoding='utf-8')).hexdigest()
+    print("changing payload")
+    decoded_payload["signature"] = signature
+    input_message.data = json.encode(decoded_payload)
+    print("returning payload")
+    return 'url = "%s", data = "%s", headers = %s, object: %s' % (
+        input_message.get_full_url(),
+        input_message.data,
+        json.dumps(dict(input_message.header_items())),
+        input_message.__dict__
+    )
+
+process(request)
 """,
 )
 

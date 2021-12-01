@@ -16,10 +16,12 @@ class DebugSessionState(Enum):
     ERROR = "ERROR"
 
 
+# If we want to support local debugging via satellite (locally configured routes)
+# this class should be renamed to RemoteDebugSession and common part should be moved
+# out to a base class. So the DebugManager could manage both local and remote sessions.
 class DebugSession:
     def __init__(
         self,
-        larky_debug_server_host: str,
         larky_debug_server_port: int,
         larky_gateway_client: LarkyGatewayClient,
         org_id: str,
@@ -30,7 +32,6 @@ class DebugSession:
         self._vault = vault
 
         self._larky_gateway_client = larky_gateway_client
-        self._larky_debug_server_host = larky_debug_server_host
         self._larky_debug_server_port = larky_debug_server_port
 
         self._request_ready_future = Future()
@@ -99,9 +100,8 @@ class DebugSession:
             logger.exception(exc)
         else:
             self._debugger = LarkyDebugger(
-                larky_script=request["script"],
-                message=request["message"],
+                script=request["script"],
+                http_message=request["message"],
                 result_future=self._result_ready_future,
-                debug_server_host=self._larky_debug_server_host,
                 debug_server_port=self._larky_debug_server_port,
             )

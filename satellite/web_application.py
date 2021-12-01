@@ -127,7 +127,6 @@ class WebApplication(Application):
         self.debug_manager = DebugManager(
             larky_gateway_host=self.config.larky_gateway_host,
             larky_gateway_port=self.config.larky_gateway_port,
-            larky_debug_server_host=self.config.larky_debug_server_host,
             larky_debug_server_port=self.config.larky_debug_server_port,
         )
 

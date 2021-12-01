@@ -21,14 +21,12 @@ class DebugManager:
         self,
         larky_gateway_host: str,
         larky_gateway_port: int,
-        larky_debug_server_host: str,
         larky_debug_server_port: int,
     ) -> None:
         self._larky_gateway_client = LarkyGatewayClient(
             gateway_host=larky_gateway_host,
             gateway_port=larky_gateway_port,
         )
-        self._larky_debug_server_host = larky_debug_server_host
         self._larky_debug_server_port = larky_debug_server_port
         self._sessions: Dict[str, DebugSession] = {}
 
@@ -37,7 +35,6 @@ class DebugManager:
             raise DebugSessionLimitExceeded()
 
         session = DebugSession(
-            larky_debug_server_host=self._larky_debug_server_host,
             larky_debug_server_port=self._larky_debug_server_port,
             larky_gateway_client=self._larky_gateway_client,
             org_id=org_id,

@@ -1,13 +1,15 @@
 import logging
 import socket
-from concurrent.futures import Future
+import time
+from concurrent.futures import Future, TimeoutError
 from enum import Enum
 from functools import wraps
 from queue import Queue
-from threading import Thread, Event
+from threading import Event, Lock, Thread
 from typing import Callable, List, Optional
 
 from google.protobuf.json_format import MessageToDict, ParseDict
+from pylarky.eval.http_evaluator import HttpEvaluator
 from pylarky.model.http_message import HttpMessage
 
 from .starlark_debugging_pb2 import DebugEvent, DebugRequest
@@ -58,39 +60,45 @@ def requires_running_debugger(debugger_method: Callable):
 class LarkyDebugger:
     def __init__(
         self,
-        larky_script: str,
-        message: HttpMessage,
-        result_future: Optional[Future] = None,
+        script: str,
+        http_message: HttpMessage,
+        result_future: Future,
         debug_server_port: int = 7300,
-        debug_server_host: str = "localhost",
     ):
-        self._completed = False
-        self._result = None
+        self._completed: bool = False
         self._result_future = result_future
-
-        self._larky_script = larky_script
-        self._request_message = message
-
-        self._debug_server_host = debug_server_host
-        self._debug_server_port = debug_server_port
         self._debug_threads = {}
-
-        self._sock = None
-
         self._stop_event = Event()
         self._response_queue = Queue()
+<<<<<<< HEAD
         self._reader_thread = Thread(target=self._reader_thread_target)
+=======
+        self._lock = Lock()
+>>>>>>> 228847e (Use pylarky.)
 
-        self._connect()
+        self._evaluator_thread = Thread(
+            target=self._evaluator_thread_target,
+            kwargs={
+                "script": script,
+                "http_message": http_message,
+                "debug_port": debug_server_port,
+            },
+            name="LakryEvaluatorThread",
+            daemon=True,  # There is no way to interrupt the evaluator gracefully
+        )
+        self._evaluator_thread.start()
+
+        self._sock = self._connect(debug_server_port)
+
+        self._reader_thread = Thread(
+            target=self._reader_thread_target,
+            name="LarkyDebugServerEventsReaderThread",
+        )
         self._reader_thread.start()
 
     @property
-    def completed(self):
+    def completed(self) -> bool:
         return self._completed
-
-    @property
-    def result(self):
-        return self._result
 
     @requires_running_debugger
     def set_breakpoints(self, breakpoints: List[dict]):
@@ -140,14 +148,41 @@ class LarkyDebugger:
         if not self._stop_event.is_set():
             self._stop_event.set()
 
-        if self._sock:
+        if self._sock is not None:
             self._sock.close()
             self._sock = None
 
-        if self._result_future is not None and not self._result_future.done():
-            self._result_future.cancel()
+        self._finalize()
 
         self._completed = True
+
+    def _finalize(
+        self,
+        result: Optional[HttpMessage] = None,
+        error: Optional[Exception] = None,
+    ):
+        if self._result_future.done():
+            return
+
+        if result is None and error is None:
+            # Before cancelling let's wait for a bit
+            try:
+                self._result_future.result(1)
+            except TimeoutError:
+                pass
+
+            with self._lock:
+                if not self._result_future.done():
+                    self._result_future.cancel()
+
+            return
+
+        with self._lock:
+            if not self._result_future.done():
+                if result is not None:
+                    self._result_future.set_result(result)
+                else:
+                    self._result_future.set_exception(error)
 
     def _request(self, request: dict) -> dict:
         # Performing request
@@ -188,15 +223,28 @@ class LarkyDebugger:
 
         return MessageToDict(event, preserving_proto_field_name=True)
 
-    def _connect(self):
-        self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        try:
-            endpoint = (self._debug_server_host, self._debug_server_port)
-            logger.debug(f"Connecting to the debug server {endpoint}")
-            self._sock.connect(endpoint)
-        except ConnectionRefusedError:
-            raise UnableToConnectToDebugServer()
+    def _connect(self, debug_server_port: int) -> socket.socket:
+        endpoint = ("localhost", debug_server_port)
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        attempts = 5
 
+<<<<<<< HEAD
+=======
+        while attempts > 0:
+            try:
+                logger.debug(f"Connecting to the debug server {endpoint}")
+                sock.connect(endpoint)
+                logger.debug("Successfully connected to the larky debug server.")
+                return sock
+            except ConnectionError:
+                attempts -= 1
+                time.sleep(1)
+
+        raise UnableToConnectToDebugServer(
+            f"Unable to connect to the debug server {endpoint}"
+        )
+
+>>>>>>> 228847e (Use pylarky.)
     def _reader_thread_target(self):
         while not self._stop_event.is_set():
             event = None
@@ -205,11 +253,11 @@ class LarkyDebugger:
                 event = self._read_event()
             except OSError:
                 pass
-            except Exception:
+            except Exception as exc:
                 logger.exception("Error during reading event from the debug server")
+                self._finalize(error=exc)
 
             if event is None:
-                self._set_result(self._request_message)  # Remove after larky is ready
                 break
 
             logging.debug(f"Got event from debug server: {event}")
@@ -232,9 +280,20 @@ class LarkyDebugger:
 
         self._response_queue.put(event)
 
-    def _set_result(self, result: HttpMessage):
-        if self._result is not None:
-            return
-        self._result = result
-        if self._result_future is not None:
-            self._result_future.set_result(result)
+    def _evaluator_thread_target(
+        self,
+        script: str,
+        http_message: HttpMessage,
+        debug_port: int,
+    ):
+        try:
+            evaluator = HttpEvaluator(script)
+            result = evaluator.evaluate(
+                http_message=http_message,
+                debug=True,
+                debug_port=debug_port,
+            )
+            self._finalize(result=result)
+        except Exception as exc:
+            logger.exception("Unable to execute larky script")
+            self._finalize(error=exc)

@@ -31,7 +31,6 @@ class SatelliteConfig:
     web_server_port: int = 8089
     larky_gateway_host: str = "localhost"
     larky_gateway_port: int = 50051
-    larky_debug_server_host: str = "localhost"
     larky_debug_server_port: int = 7300
 
 

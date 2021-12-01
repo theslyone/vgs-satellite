@@ -133,15 +133,6 @@ DEFAULT_CONFIG = SatelliteConfig()
     help='[env:SATELLITE_LARKY_GATEWAY_PORT] (default:50051) Larky gateway port',
 )
 @click.option(
-    '--larky-debug-server-host',
-    type=str,
-    envvar='SATELLITE_LARKY_DEBUG_SERVER_HOST',
-    help=(
-        '[env:SATELLITE_LARKY_DEBUG_SERVER_HOST] (default:localhost) '
-        'Larky debug server host'
-    ),
-)
-@click.option(
     '--larky-debug-server-port',
     type=str,
     envvar='SATELLITE_LARKY_DEBUG_SERVER_PORT',
