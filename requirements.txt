@@ -100,7 +100,7 @@ pyasn1==0.4.8
     #   mitmproxy
 pycparser==2.20
     # via cffi
-pylarky==0.7.6
+pylarky==0.7.7
     # via -r requirements.in
 pyopenssl==20.0.1
     # via mitmproxy

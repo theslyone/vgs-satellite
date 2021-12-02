@@ -161,6 +161,8 @@ class LarkyDebugger:
         result: Optional[HttpMessage] = None,
         error: Optional[Exception] = None,
     ):
+        logger.debug(f"Finallizing debugging with {result=} and {error=}")
+
         if self._result_future.done():
             return
 
@@ -184,7 +186,7 @@ class LarkyDebugger:
                 else:
                     self._result_future.set_exception(error)
 
-    def _request(self, request: dict) -> dict:
+    def _request(self, request: dict) -> Optional[dict]:
         # Performing request
         request_proto = DebugRequest()
         ParseDict(request, request_proto)
@@ -194,6 +196,8 @@ class LarkyDebugger:
 
         # Reading respone
         event = self._response_queue.get()
+        if event is None:
+            return None
 
         error = event.get("error")
         if error:
@@ -263,6 +267,8 @@ class LarkyDebugger:
             logging.debug(f"Got event from debug server: {event}")
 
             self._process_event(event)
+
+        self._response_queue.put(None)
 
         if not self._stop_event.is_set():
             self.stop()
