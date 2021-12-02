@@ -79,7 +79,7 @@ class LarkyDebugger:
 
         self._stop_event = Event()
         self._response_queue = Queue()
-        self._reader_thread = Thread(target=self._reader_thread)
+        self._reader_thread = Thread(target=self._reader_thread_target)
 
         self._connect()
         self._reader_thread.start()
@@ -169,8 +169,13 @@ class LarkyDebugger:
         return event
 
     def _read_event(self) -> Optional[dict]:
-        rsp_size = read_uint_from_sock(self._sock)
-        rsp_data = self._sock.recv(rsp_size)
+        size = read_uint_from_sock(self._sock)
+        rsp_data = b''
+        while size > 0:
+            data = self._sock.recv(size)
+            rsp_data += data
+            size -= len(data)
+
         if not rsp_data:
             return None
 
@@ -192,7 +197,7 @@ class LarkyDebugger:
         except ConnectionRefusedError:
             raise UnableToConnectToDebugServer()
 
-    def _reader_thread(self):
+    def _reader_thread_target(self):
         while not self._stop_event.is_set():
             event = None
 
