@@ -73,11 +73,8 @@ class LarkyDebugger:
         self._debug_threads = {}
         self._stop_event = Event()
         self._response_queue = Queue()
-<<<<<<< HEAD
         self._reader_thread = Thread(target=self._reader_thread_target)
-=======
         self._lock = Lock()
->>>>>>> 228847e (Use pylarky.)
 
         self._evaluator_thread = Thread(
             target=self._evaluator_thread_target,
@@ -181,9 +178,9 @@ class LarkyDebugger:
                     script_path = path
                     line_number = n
 
-        self.set_breakpoints([
-            {"location": {"path": script_path, "line_number": line_number}}
-        ])
+        self.set_breakpoints(
+            [{"location": {"path": script_path, "line_number": line_number}}]
+        )
         self._request({"start_debugging": {}})
 
     def _finalize(
@@ -242,11 +239,10 @@ class LarkyDebugger:
         rsp_data = b''
         while size > 0:
             data = self._sock.recv(size)
+            if not data:
+                return None
             rsp_data += data
             size -= len(data)
-
-        if not rsp_data:
-            return None
 
         event = DebugEvent()
         try:
@@ -262,8 +258,6 @@ class LarkyDebugger:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         attempts = 5
 
-<<<<<<< HEAD
-=======
         while attempts > 0:
             try:
                 logger.debug(f"Connecting to the debug server {endpoint}")
@@ -278,7 +272,6 @@ class LarkyDebugger:
             f"Unable to connect to the debug server {endpoint}"
         )
 
->>>>>>> 228847e (Use pylarky.)
     def _reader_thread_target(self):
         while not self._stop_event.is_set():
             event = None
