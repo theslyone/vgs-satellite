@@ -38,17 +38,25 @@ class DebugSession:
 
         self._result_ready_future = Future()
 
-        self._larky_gateway_client.new_session(
-            session_id=self._id,
-            org_id=self._org_id,
-            vault=self._vault,
-            request_ready=self._request_ready_future,
-            result_ready=self._result_ready_future,
-        )
+        # self._larky_gateway_client.new_session(
+        #     session_id=self._id,
+        #     org_id=self._org_id,
+        #     vault=self._vault,
+        #     request_ready=self._request_ready_future,
+        #     result_ready=self._result_ready_future,
+        # )
 
         self._error = None
 
         self._debugger = None
+
+        self._debugger = LarkyDebugger(
+            larky_script=None,
+            message=None,
+            result_future=self._result_ready_future,
+            debug_server_host=self._larky_debug_server_host,
+            debug_server_port=self._larky_debug_server_port,
+        )
 
     @property
     def id(self) -> str:
@@ -71,11 +79,6 @@ class DebugSession:
     @property
     def debugger(self):
         return self._debugger
-
-    def start(self):
-        if self.state == DebugSessionState.RUNNING:
-            return
-        self._debugger = LarkyDebugger(debug_server_port=self._larky_debug_server_port)
 
     def stop(self):
         if self.state not in (

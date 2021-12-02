@@ -52,7 +52,7 @@ class GetFramesResponseSchema(Schema):
             binding = fields.List(fields.Nested(Value))
 
         function_name = fields.Str(required=True, example="<toplevel>")
-        scope = fields.Nested(Scope)
+        scope = fields.List(fields.Nested(Scope))
         location = fields.Nested(Location)
 
     frames = fields.List(fields.Nested(Frame))

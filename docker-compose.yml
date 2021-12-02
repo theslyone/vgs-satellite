@@ -46,8 +46,8 @@ services:
       SATELLITE_LARKY_DEBUG_SERVER_HOST: docker.for.mac.localhost  # Remove after POC
       SATELLITE_LARKY_GATEWAY_HOST: larky_gateway_server  # Remove after POC
       SATELLITE_LARKY_GATEWAY_PORT: 50051
-    depends_on:
-      - larky_gateway_server  # Remove after POC
+    # depends_on:
+    #   - larky_gateway_server  # Remove after POC
 
   # Remove after POC
   larky_gateway_server:
