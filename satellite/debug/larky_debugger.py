@@ -1,4 +1,7 @@
 import logging
+import os
+import os.path
+import re
 import socket
 import time
 from concurrent.futures import Future, TimeoutError
@@ -10,6 +13,7 @@ from typing import Callable, List, Optional
 
 from google.protobuf.json_format import MessageToDict, ParseDict
 from pylarky.eval.http_evaluator import HttpEvaluator
+from pylarky.eval.evaluator import Evaluator
 from pylarky.model.http_message import HttpMessage
 
 from .starlark_debugging_pb2 import DebugEvent, DebugRequest
@@ -57,6 +61,15 @@ def requires_running_debugger(debugger_method: Callable):
     return wrapper
 
 
+POC_MOCK_SCRIPT = """
+def foo():
+    for i in range(5):
+        print('interation: {}'.format(i))
+
+foo()
+"""
+
+
 class LarkyDebugger:
     def __init__(
         self,
@@ -95,6 +108,9 @@ class LarkyDebugger:
             name="LarkyDebugServerEventsReaderThread",
         )
         self._reader_thread.start()
+
+        # POC hack!!!
+        # self._skip()
 
     @property
     def completed(self) -> bool:
@@ -155,6 +171,31 @@ class LarkyDebugger:
         self._finalize()
 
         self._completed = True
+
+    # POC hack!!!
+    def _skip(self):
+        latest_ts = 0
+        script_path = None
+        line_number = None
+        for name in os.listdir("/tmp"):
+            match = re.fullmatch(r"merge\d+.star", name)
+            if match is not None:
+                path = f"/tmp/{name}"
+                ts = os.path.getmtime(path)
+                if latest_ts < ts:
+                    with open(path) as f:
+                        for n, l in enumerate(f.readlines()):
+                            if "start script" in l:
+                                break
+                    latest_ts = ts
+                    script_path = path
+                    line_number = n
+
+        logger.debug(f"HACK SCIRPT: {script_path}")
+        self.set_breakpoints([
+            {"location": {"path": script_path, "line_number": line_number}}
+        ])
+        self._request({"start_debugging": {}})
 
     def _finalize(
         self,
@@ -292,10 +333,21 @@ class LarkyDebugger:
         http_message: HttpMessage,
         debug_port: int,
     ):
+        # try:
+        #     evaluator = HttpEvaluator(script)
+        #     result = evaluator.evaluate(
+        #         http_message=http_message,
+        #         debug=True,
+        #         debug_port=debug_port,
+        #     )
+        #     self._finalize(result=result)
+        # except Exception as exc:
+        #     logger.exception("Unable to execute larky script")
+        #     self._finalize(error=exc)
         try:
-            evaluator = HttpEvaluator(script)
+            evaluator = Evaluator(POC_MOCK_SCRIPT)
             result = evaluator.evaluate(
-                http_message=http_message,
+                input_data="TAG = 1",
                 debug=True,
                 debug_port=debug_port,
             )

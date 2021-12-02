@@ -47,6 +47,21 @@ process(request)
 )
 
 
+# MOCK_REQUEST = ProxyRequestEvent(
+#     http_message=HttpMessage(
+#         url="http://example.com",
+#         data='{"some": "data"}',
+#         headers={"Content-type": "application/json", "Key": "1234567890"},
+#     ),
+#     larky_script="""
+# def process(input_message):
+#     print("start script")
+
+# process(request)
+# """,
+# )
+
+
 class LarkyGatewayServicer(gateway_pb2_grpc.LarkyGatewayServicer):
     def DebugSession(self, request_iterator, context):
         for event in request_iterator:
