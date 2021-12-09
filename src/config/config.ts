@@ -15,7 +15,7 @@ function getConfig(environment = 'dev') {
     echoServerHostname: 'echo.apps.verygood.systems',
     echoServerRegex: 'echo\.apps\.verygood\.systems', // eslint-disable-line
     dashboardApiHost: 'https://accounts.verygoodsecurity.io',
-    dashboardLink: 'https://dashboard.verygoodsecurity.com',
+    dashboardLink: 'https://dashboard.verygoodsecurity.io',
     docsLink: 'https://www.verygoodsecurity.com/docs/overview',
     docsGuidesLink: 'https://www.verygoodsecurity.com/docs/guides/index',
     docsFaqLink: 'https://www.verygoodsecurity.com/docs/faq',
