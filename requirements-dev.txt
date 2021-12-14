@@ -85,7 +85,7 @@ kaitaistruct==0.9
     # via mitmproxy
 ldap3==2.8.1
     # via mitmproxy
-lxml==4.6.2
+lxml==4.6.5
     # via -r requirements.in
 macholib==1.14
     # via pyinstaller
