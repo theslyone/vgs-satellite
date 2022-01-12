@@ -115,7 +115,7 @@
     "pdfjs-dist": "^2.5.207",
     "prismjs": "^1.23.0",
     "qs": "^6.9.6",
-    "ramda": "^0.27.1",
+    "ramda": "^0.27.2",
     "react": "^16.14.0",
     "react-beautiful-dnd": "^13.0.0",
     "react-copy-to-clipboard": "^5.0.3",
