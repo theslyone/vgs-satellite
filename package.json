@@ -163,7 +163,7 @@
     "cypress": "^6.5.0",
     "cypress-file-upload": "^5.0.2",
     "cypress-plugin-snapshots": "^1.4.4",
-    "electron": "^10.3.0",
+    "electron": "^11.5.0",
     "electron-builder": "^22.9.1",
     "electron-notarize": "^1.0.0",
     "electron-osx-sign": "^0.5.0",
