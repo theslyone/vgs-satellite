@@ -133,7 +133,7 @@
     "redux-thunk": "^2.3.0",
     "sass": "^1.32.5",
     "source-map-support": "^0.5.19",
-    "url-parse": "^1.5.2",
+    "url-parse": "^1.5.6",
     "wait-on": "^5.2.1"
   },
   "devDependencies": {
